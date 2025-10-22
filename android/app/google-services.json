@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "64211053051",
+    "firebase_url": "https://azt-playground-app-default-rtdb.europe-west1.firebasedatabase.app",
     "project_id": "azt-playground-app",
     "storage_bucket": "azt-playground-app.firebasestorage.app"
   },
@@ -12,7 +13,20 @@
           "package_name": "com.example.azt"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "64211053051-rat4o5n3kgfeiddinasu4ol99t4jf06u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.azt",
+            "certificate_hash": "62bdf9dee6eb74e7a72db10d75e86d0e3ea5c023"
+          }
+        },
+        {
+          "client_id": "64211053051-rrnap8erco2gc6361n8c272b1cddrgtb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCiC3BnNnf6bpUXb7ekKEIx2tsYVbO5nVc"
@@ -20,7 +34,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "64211053051-annfkr53k25bqie9tdggjoesdflqnskq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "64211053051-8759r1av3s5r7pajr0olchr0i7ma182d.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.azt"
+              }
+            }
+          ]
         }
       }
     }
