@@ -45,16 +45,15 @@ jobs:
 
       - name: Ensure SPA deep-links work (copy index -> 404)
         run: |
-          cp build/web/index.html build/web/404.html || true
-
-      # Option A: Always-run step that writes CNAME only if CUSTOM_DOMAIN secret exists
-      - name: Add CNAME (optional)
-        run: |
-          if [ -n "${{ secrets.CUSTOM_DOMAIN }}" ]; then
-            echo "Writing CNAME for domain: ${{ secrets.CUSTOM_DOMAIN }}"
-            echo "${{ secrets.CUSTOM_DOMAIN }}" > build/web/CNAME
+          if [ -f build/web/index.html ]; then
+            cp build/web/index.html build/web/404.html || true
           else
-            echo "CUSTOM_DOMAIN secret not set — skipping CNAME."
+            echo "No build/web/index.html found — skipping copy."
           fi
 
       - name: Deploy to GitHub Pages (gh-pages branch)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/web
+          publish_branch: gh-pages
