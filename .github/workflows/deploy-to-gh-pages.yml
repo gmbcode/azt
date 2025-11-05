@@ -45,7 +45,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Flutter web (release)
-        run: flutter build web --release
+        run: flutter build web --release --base-href "/azt/"
 
       - name: Ensure SPA deep-links work (copy index -> 404)
         run: |
