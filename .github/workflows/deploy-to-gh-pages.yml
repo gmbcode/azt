@@ -5,8 +5,9 @@ on:
     branches:
       - main
 
+# Need write permission so the action can push to gh-pages
 permissions:
-  contents: read
+  contents: write   # allow git push / branch creation
   pages: write
   id-token: write
 
@@ -14,8 +15,11 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (with credentials)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0            # ensure full history (safer for pushes)
+          persist-credentials: true # ensure the GITHUB_TOKEN is available to git
 
       - name: Cache Pub packages
         uses: actions/cache@v4
@@ -27,7 +31,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - name: Set up Flutter (stable)
+      - name: Set up Flutter (stable channel)
         uses: subosito/flutter-action@v2
         with:
           channel: stable
