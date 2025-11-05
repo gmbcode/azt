@@ -1,0 +1,65 @@
+name: Build & Deploy Flutter Web → GitHub Pages
+
+# Run on pushes to main
+on:
+  push:
+    branches:
+      - main
+
+# Minimal permissions required to publish to Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache Pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.pub-cache/bin
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Enable web support & doctor
+        run: |
+          flutter config --enable-web
+          flutter doctor -v
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Flutter web (release)
+        run: flutter build web --release
+
+      - name: Ensure SPA deep-links work (copy index -> 404)
+        run: |
+          cp build/web/index.html build/web/404.html || true
+
+      # Optional: write CNAME from repo secret CUSTOM_DOMAIN (set if you use a custom domain)
+      - name: Add CNAME (optional)
+        if: secrets.CUSTOM_DOMAIN != ''
+        run: echo "${{ secrets.CUSTOM_DOMAIN }}" > build/web/CNAME
+
+      - name: Deploy to GitHub Pages (gh-pages branch)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/web
+          publish_branch: gh-pages
+          # optional: commit message customization
+          # commit_message: "ci: deploy to GitHub Pages (auto)"
+
