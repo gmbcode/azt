@@ -1,6 +1,8 @@
 import 'package:azt/features/auth/presentation/components/my_button.dart';
 import 'package:azt/features/auth/presentation/components/my_textfield.dart';
+import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class RegisterPage extends StatefulWidget {
   final void Function()? togglePages;
@@ -16,6 +18,50 @@ class _RegisterPageState extends State<RegisterPage> {
   final pwController = TextEditingController();
   final confirmPwController = TextEditingController();
   final nameController = TextEditingController();
+
+  //register button pressed
+  void register(){
+    //prepare information to store
+    final String name = nameController.text;
+    final String email = emailController.text;
+    final String pw = pwController.text;
+    final String confirmPw = confirmPwController.text;
+
+    //auth cubit
+    final authCubit = context.read<AuthCubit>();
+
+    //ensure fields entered arent empty
+    if (email.isNotEmpty && name.isNotEmpty && pw.isNotEmpty && confirmPw.isNotEmpty){
+      
+      //pw matches confirmpw
+      if(pw == confirmPw){
+        authCubit.register(name, email, pw);          //registers user
+      }
+
+      //pw doesnt match
+      else{
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Passwords do not match!!")));
+      }
+    }
+    //fields are empty
+    else{
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please enter all Fields!")));
+    }
+  }
+  
+  //dispose memory controllers 
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    pwController.dispose();
+    confirmPwController.dispose();
+    super.dispose();
+  }
+  
+  //build ui
   @override
   Widget build(BuildContext context) {
 
@@ -73,7 +119,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
             //register button
             MyButton(
-              onTap: () {},
+              onTap: register,
               text: "Sign Up",
             ),
 

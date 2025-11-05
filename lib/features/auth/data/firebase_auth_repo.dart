@@ -1,6 +1,9 @@
 import 'package:azt/features/auth/domain/entities/app_user.dart';
 import 'package:azt/features/auth/domain/repos/auth_repo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+
 
 class FirebaseAuthRepo implements AuthRepo{
   //firebase access
@@ -99,13 +102,38 @@ class FirebaseAuthRepo implements AuthRepo{
   Future<String> sendPasswordResetEmail(String email) async {
     try{
       await firebaseAuth.sendPasswordResetEmail(email: email);
-      return 'Password reset email sent!';
+      return "Password reset email sent!";
     }
     catch(e){
-      return 'An error occured: $e';
+      return "An error occured: $e";
     }
   }
+  
+  @override
+ Future<AppUser?> signInWithGoogle() async {
+  try {
+    // Begin the interactive sign-in process - V7 CHANGE: use signInWithProvider
+    final UserCredential userCredential = 
+        await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
 
+    // user cancelled sign-in
+    if (userCredential.user == null) return null;
 
+    // firebase user
+    final firebaseUser = userCredential.user;
 
+    // user cancelled sign-in process
+    if (firebaseUser == null) return null;
+
+    AppUser appUser = AppUser(
+      uid: firebaseUser.uid,
+      email: firebaseUser.email ?? '',
+    );
+
+    return appUser;
+  } catch (e) {
+    print(e);
+    return null;
+  }
+}
 }

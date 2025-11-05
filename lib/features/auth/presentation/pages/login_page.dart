@@ -5,9 +5,12 @@ if logged in, go to homepage
 no account, go to register page
 */
 
+import 'package:azt/features/auth/presentation/components/google_sign_in_button.dart';
 import 'package:azt/features/auth/presentation/components/my_button.dart';
 import 'package:azt/features/auth/presentation/components/my_textfield.dart';
+import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LoginPage extends StatefulWidget {
   final void Function()? togglePages;
@@ -22,6 +25,62 @@ class _LoginPageState extends State<LoginPage> {
   //text controller
   final emailController = TextEditingController();
   final pwController = TextEditingController();
+
+  //auth cubit
+  late final authCubit = context.read<AuthCubit>();
+
+  //LOGIN button pressed
+  void login(){
+    //prepare email and password
+    final String email = emailController.text;
+    final String pw = pwController.text;
+
+    //ensure fields are filled
+    if (email.isNotEmpty && pw.isNotEmpty){
+      authCubit.login(email, pw);
+    }
+
+    //fields are empty
+    else{
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please Enter Both Email and Password!")));
+    }
+  }
+  void openForgotPasswordBox(){
+    showDialog(
+      context: context, 
+      builder: (context)=> AlertDialog(
+          title: Text("Forgot Password"),
+          content: MyTextField(
+            controller: emailController, hintText: "Enter email", obscureText: false
+          ),
+          actions: [
+            //cancel button
+            TextButton(
+              onPressed: ()=>Navigator.pop(context), 
+              child: const Text("Cancel"),
+            ),
+
+            //reset button
+            TextButton(
+              onPressed: () async {
+                  String message = await authCubit.forgotPassword(emailController.text);
+                  if (message == "Password reset email sent!"){
+                    Navigator.pop(context);
+                    emailController.clear();
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+              },
+
+              child: const Text("Reset"),
+            ),
+          ]
+      ),
+    );
+  }
+
+
+  //BUILD UI
   @override
   Widget build(BuildContext context) {
 
@@ -64,29 +123,69 @@ class _LoginPageState extends State<LoginPage> {
 
             //password
             MyTextField(controller: pwController, hintText: "Password", obscureText: true),
-          
+
+            const SizedBox(height:10),
+
             //forgot pass
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  "Forgot Password?", 
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  )
-                  
+                GestureDetector(
+                  onTap: ()=> openForgotPasswordBox(),
+                  child: Text(
+                    "Forgot Password?", 
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    )
+                    
+                  ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 10),
 
             //login
             MyButton(
-              onTap: () {},
+              onTap: login,
               text: "Login",
             ),
+
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: Theme.of(context).colorScheme.tertiary,
+                ), 
+              ), 
+            Text("Or sign in with"),
+            Expanded(
+              child: Divider(
+                color: Theme.of(context).colorScheme.tertiary,
+              ),
+            ),
+            ],
+            ),
+
+            const SizedBox(height: 15),
+
+            
+            // oauth using google
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                //google button
+                MyGoogleSignInButton(
+                  onTap: () {},
+                )
+
+              ],
+            ),
+
+            const SizedBox(height: 25),
 
             //dont have acc sign in later
             Row(
