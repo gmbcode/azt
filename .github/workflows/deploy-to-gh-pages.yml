@@ -1,12 +1,10 @@
 name: Build & Deploy Flutter Web → GitHub Pages
 
-# Run on pushes to main
 on:
   push:
     branches:
       - main
 
-# Minimal permissions required to publish to Pages
 permissions:
   contents: read
   pages: write
@@ -49,14 +47,14 @@ jobs:
         run: |
           cp build/web/index.html build/web/404.html || true
 
-      # Optional: write CNAME from repo secret CUSTOM_DOMAIN (set if you use a custom domain)
+      # Option A: Always-run step that writes CNAME only if CUSTOM_DOMAIN secret exists
       - name: Add CNAME (optional)
-        if: ${{ secrets.CUSTOM_DOMAIN != '' }}
-        run: echo "${{ secrets.CUSTOM_DOMAIN }}" > build/web/CNAME
+        run: |
+          if [ -n "${{ secrets.CUSTOM_DOMAIN }}" ]; then
+            echo "Writing CNAME for domain: ${{ secrets.CUSTOM_DOMAIN }}"
+            echo "${{ secrets.CUSTOM_DOMAIN }}" > build/web/CNAME
+          else
+            echo "CUSTOM_DOMAIN secret not set — skipping CNAME."
+          fi
 
       - name: Deploy to GitHub Pages (gh-pages branch)
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/web
-          publish_branch: gh-pages
