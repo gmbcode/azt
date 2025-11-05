@@ -1,3 +1,4 @@
+import 'package:azt/features/auth/data/firebase_auth_repo.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,6 +13,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       appBar: AppBar(
         title : Text("HOME"),

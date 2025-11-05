@@ -3,6 +3,7 @@ import 'package:azt/features/auth/presentation/components/loading.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_states.dart';
 import 'package:azt/features/auth/presentation/pages/auth_page.dart';
+import 'package:azt/features/auth/presentation/pages/verification_screen.dart';
 // ignore: unused_import
 import 'package:azt/features/auth/presentation/pages/login_page.dart';
 // ignore: unused_import
@@ -55,7 +56,10 @@ class MyApp extends StatelessWidget {
             if(state is Authenticated){
               return const HomePage();
             }
-
+            // Email of user is not verified
+            if(state is EmailNotVerified){
+              return const EmailVerificationScreen();
+            }
             //auth is loading
             else{
               return const LoadingScreen();

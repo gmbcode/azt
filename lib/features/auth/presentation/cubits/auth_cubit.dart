@@ -24,7 +24,12 @@ class AuthCubit extends Cubit<AuthState>{
 
     if (user!= null){
       _currentUser = user;
-      emit(Authenticated(user));
+        if (user.emailVerified){
+          emit(Authenticated(user));
+        }
+        else{
+          emit(EmailNotVerified(user));
+        }
     } else{
       emit(Unauthenticated());
     }
@@ -35,10 +40,15 @@ class AuthCubit extends Cubit<AuthState>{
     try{
       emit(AuthLoading());
       final user = await authRepo.loginWithEmailPassword(email, pw);
-
+      
       if (user != null){
         _currentUser = user;
-        emit(Authenticated(user));
+          if(user.emailVerified){
+            emit(Authenticated(user));
+          }
+          else{
+            emit(EmailNotVerified(user));
+          }
       } else{
         emit(Unauthenticated());
       }
@@ -54,10 +64,15 @@ class AuthCubit extends Cubit<AuthState>{
     try{
       emit(AuthLoading());
       final user = await authRepo.registerWithEmailPassword(name, email, pw);
-
+      authRepo.sendEmailVerification();
       if (user != null){
         _currentUser = user;
+        if(user.emailVerified){
         emit(Authenticated(user));
+        }
+        else{
+          emit(EmailNotVerified(user));
+        }
       } else{
         emit(Unauthenticated());
       }
@@ -115,6 +130,47 @@ class AuthCubit extends Cubit<AuthState>{
     catch(e){
       emit(AuthError(e.toString()));
       emit(Unauthenticated());
+    }
+  }
+// Send email verification
+Future<void> sendEmailVerification() async {
+  try {
+    await authRepo.sendEmailVerification();
+  } catch (e) {
+    emit(AuthError(e.toString()));
+  }
+}
+
+// Reload user to check email verification status
+Future<void> reloadUser() async {
+  try {
+    final user = await authRepo.reloadUser();
+    if (user != null) {
+      _currentUser = user;
+      emit(Authenticated(user));
+    }
+  } catch (e) {
+    emit(AuthError(e.toString()));
+  }
+}
+Future<void> checkEmailVerification() async {
+    
+    final user = await authRepo.reloadUser();
+    if (user != null) {
+      final updatedUser = await authRepo.getCurrentUser();
+      
+      if (updatedUser?.emailVerified ?? false) {
+        emit(Authenticated(updatedUser!));
+      } else {
+        emit(EmailNotVerified(updatedUser!));
+      }
+    }
+  }
+  Future<void> resendVerificationEmail() async {
+    try {
+      await authRepo.sendEmailVerification();
+    } catch (e) {
+      emit(AuthError(e.toString()));
     }
   }
 }

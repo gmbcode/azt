@@ -1,25 +1,33 @@
 class AppUser {
   final String uid;
   final String email;
+  final bool emailVerified;
+  final String name;  // Add this field
 
   AppUser({
     required this.uid,
     required this.email,
+    this.emailVerified = false,
+    this.name = '',  // Default to empty string
   });
 
-  //app user to json converter
+  // toJson converter
   Map<String,dynamic> toJson(){
     return{
-      'uid':uid,
-      'email':email,
+      'uid': uid,
+      'email': email,
+      'emailVerified': emailVerified,
+      'name': name,
     };
   }
 
-  //json to app user converter
+  // fromJson converter
   factory AppUser.fromJson(Map<String,dynamic> jsonUser){
-      return AppUser(
-        uid: jsonUser['uid'], 
-        email:jsonUser['email'],
-      );
+    return AppUser(
+      uid: jsonUser['uid'], 
+      email: jsonUser['email'],
+      emailVerified: jsonUser['emailVerified'] ?? false,
+      name: jsonUser['name'] ?? '',
+    );
   }
 }

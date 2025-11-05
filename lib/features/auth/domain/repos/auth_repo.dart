@@ -9,4 +9,6 @@ abstract class AuthRepo {
   Future<String> sendPasswordResetEmail(String email);
   Future<void> deleteAccount();
   Future<AppUser?> signInWithGoogle();
+  Future<void> sendEmailVerification(); 
+  Future<AppUser?> reloadUser(); 
 }
