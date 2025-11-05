@@ -51,7 +51,7 @@ jobs:
 
       # Optional: write CNAME from repo secret CUSTOM_DOMAIN (set if you use a custom domain)
       - name: Add CNAME (optional)
-        if: secrets.CUSTOM_DOMAIN != ''
+        if: ${{ secrets.CUSTOM_DOMAIN != '' }}
         run: echo "${{ secrets.CUSTOM_DOMAIN }}" > build/web/CNAME
 
       - name: Deploy to GitHub Pages (gh-pages branch)
@@ -60,6 +60,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: build/web
           publish_branch: gh-pages
-          # optional: commit message customization
-          # commit_message: "ci: deploy to GitHub Pages (auto)"
-
