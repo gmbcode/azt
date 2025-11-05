@@ -88,127 +88,131 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
 
       //BODY
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-               
-            //logo
-            Icon(
-              Icons.lock_open,
-              size:80,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          
-            const SizedBox(height:25),
-
-            //name of app
-            Text(
-              "S H O P P I N G   A P P ",
-              style:TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.inversePrimary,
-              )
-            ),
-          
-            const SizedBox(height:25),
-          
-            //email
-            MyTextField(controller: emailController, hintText: "Email", obscureText: false),
-
-            const SizedBox(height:10),
-
-            //password
-            MyTextField(controller: pwController, hintText: "Password", obscureText: true),
-
-            const SizedBox(height:10),
-
-            //forgot pass
-            Row(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                GestureDetector(
-                  onTap: ()=> openForgotPasswordBox(),
-                  child: Text(
-                    "Forgot Password?", 
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    )
-                    
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            //login
-            MyButton(
-              onTap: login,
-              text: "Login",
-            ),
-
-            const SizedBox(height: 10),
-
-            Row(
-              children: [
-                Expanded(
-                  child: Divider(
-                    color: Theme.of(context).colorScheme.tertiary,
-                ), 
-              ), 
-            Text("Or sign in with"),
-            Expanded(
-              child: Divider(
-                color: Theme.of(context).colorScheme.tertiary,
+                 
+              //logo
+              Icon(
+                Icons.lock_open,
+                size:80,
+                color: Theme.of(context).colorScheme.primary,
               ),
-            ),
+            
+              const SizedBox(height:25),
+        
+              //name of app
+              Text(
+                "S H O P P I N G   A P P ",
+                style:TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.inversePrimary,
+                )
+              ),
+            
+              const SizedBox(height:25),
+            
+              //email
+              MyTextField(controller: emailController, hintText: "Email", obscureText: false),
+        
+              const SizedBox(height:10),
+        
+              //password
+              MyTextField(controller: pwController, hintText: "Password", obscureText: true),
+        
+              const SizedBox(height:10),
+        
+              //forgot pass
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: ()=> openForgotPasswordBox(),
+                    child: Text(
+                      "Forgot Password?", 
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      )
+                      
+                    ),
+                  ),
+                ],
+              ),
+        
+              const SizedBox(height: 10),
+        
+              //login
+              MyButton(
+                onTap: login,
+                text: "Login",
+              ),
+        
+              const SizedBox(height: 10),
+        
+              Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: Theme.of(context).colorScheme.tertiary,
+                  ), 
+                ), 
+              Text("Or sign in with"),
+              Expanded(
+                child: Divider(
+                  color: Theme.of(context).colorScheme.tertiary,
+                ),
+              ),
+              ],
+              ),
+        
+              const SizedBox(height: 15),
+        
+              
+              // oauth using google
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  //google button
+                  MyGoogleSignInButton(
+                    onTap: () async {
+                      authCubit.signInWithGoogle();
+                    }
+                  )
+        
+                ],
+              ),
+        
+              const SizedBox(height: 25),
+        
+              //dont have acc sign in later
+              Row(
+                mainAxisAlignment:MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Dont Have an Account?",
+                    style:
+                      TextStyle(color: Theme.of(context).colorScheme.primary,),
+                  ),
+                  GestureDetector(
+                    onTap: widget.togglePages,
+                    child: Text(
+                      " Register Now",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold, 
+                        color: Theme.of(context).colorScheme.primary,
+                      ), 
+                    ),
+                  ),
+                ],
+              ),
             ],
             ),
-
-            const SizedBox(height: 15),
-
-            
-            // oauth using google
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                //google button
-                MyGoogleSignInButton(
-                  onTap: () {},
-                )
-
-              ],
-            ),
-
-            const SizedBox(height: 25),
-
-            //dont have acc sign in later
-            Row(
-              mainAxisAlignment:MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Dont Have an Account?",
-                  style:
-                    TextStyle(color: Theme.of(context).colorScheme.primary,),
-                ),
-                GestureDetector(
-                  onTap: widget.togglePages,
-                  child: Text(
-                    " Register Now",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      color: Theme.of(context).colorScheme.primary,
-                    ), 
-                  ),
-                ),
-              ],
-            ),
-          ],
           ),
         ),
       )
