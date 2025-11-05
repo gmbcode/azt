@@ -2,7 +2,7 @@ import 'package:azt/features/auth/domain/entities/app_user.dart';
 import 'package:azt/features/auth/domain/repos/auth_repo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 
 class FirebaseAuthRepo implements AuthRepo{
@@ -110,28 +110,35 @@ class FirebaseAuthRepo implements AuthRepo{
   }
   
   @override
- Future<AppUser?> signInWithGoogle() async {
+  Future<AppUser?> signInWithGoogle() async {
   try {
-    // Begin the interactive sign-in process - V7 CHANGE: use signInWithProvider
-    final UserCredential userCredential = 
-        await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
-
+    final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+    googleProvider.addScope('email');
+    googleProvider.addScope('profile');
+    
+    UserCredential userCredential;
+    
+    if (!kIsWeb) {
+      // Mobile platforms
+      userCredential = await FirebaseAuth.instance.signInWithProvider(googleProvider);
+    } else {
+      // Web platform - use signInWithPopup instead
+      userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+    }
+    
     // user cancelled sign-in
     if (userCredential.user == null) return null;
-
+    
     // firebase user
-    final firebaseUser = userCredential.user;
-
-    // user cancelled sign-in process
-    if (firebaseUser == null) return null;
-
+    final firebaseUser = userCredential.user!;
+    
     AppUser appUser = AppUser(
       uid: firebaseUser.uid,
       email: firebaseUser.email ?? '',
     );
-
     return appUser;
-  } catch (e) {
+  } 
+  catch (e) {
     print(e);
     return null;
   }
