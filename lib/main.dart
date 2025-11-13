@@ -1,4 +1,5 @@
 import 'package:azt/features/auth/data/firebase_auth_repo.dart';
+import 'package:azt/features/auth/data/firebase_user_repo.dart';
 import 'package:azt/features/auth/presentation/components/loading.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_states.dart';
@@ -26,15 +27,18 @@ void main() async {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
+  //user repo
+  final firebaseUserRepo = FirebaseUserRepo();
+
   //auth repo
-  final firebaseAuthRepo = FirebaseAuthRepo();
+  late final firebaseAuthRepo = FirebaseAuthRepo(userRepo: firebaseUserRepo);
 
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
     //provide cubits to app
-    providers: [
+    providers: [  
       //auth cubit
       BlocProvider<AuthCubit>(
         create: (context)=>

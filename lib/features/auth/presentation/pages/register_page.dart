@@ -3,6 +3,7 @@ import 'package:azt/features/auth/presentation/components/my_textfield.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:azt/features/auth/domain/validators/username_validator.dart';
 
 class RegisterPage extends StatefulWidget {
   final void Function()? togglePages;
@@ -29,6 +30,14 @@ class _RegisterPageState extends State<RegisterPage> {
 
     //auth cubit
     final authCubit = context.read<AuthCubit>();
+
+    //validate username
+    final usernameError = UsernameValidator.validate(name);
+    if (usernameError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(usernameError)));
+      return;
+    }
 
     //ensure fields entered arent empty
     if (email.isNotEmpty && name.isNotEmpty && pw.isNotEmpty && confirmPw.isNotEmpty){
