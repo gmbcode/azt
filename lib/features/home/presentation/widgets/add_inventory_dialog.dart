@@ -53,11 +53,19 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen width for responsive dialog sizing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9;
+    
     return AlertDialog(
       title: const Text('Add New Inventory Item'),
-      // Make the dialog wider
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: screenWidth > 600 ? 24 : 16,
+        vertical: 20,
+      ),
+      // Make the dialog width responsive
       content: SizedBox(
-        width: 500,
+        width: dialogWidth,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -91,12 +99,13 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
   // Helper widget to avoid repeating code
   Widget _buildTextField(TextEditingController controller, String label, {bool isNumber = false, bool isRequired = true, int maxLines = 1}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: TextFormField(
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         maxLines: maxLines,
