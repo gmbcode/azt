@@ -6,6 +6,7 @@ import '../models/payment_status_model.dart';
 import '../widgets/retailer_main_sidebar.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/reusable_order_table.dart';
+import '../widgets/responsive_layout.dart';
 
 class RetailerDashboardPage extends StatefulWidget {
   const RetailerDashboardPage({super.key});
@@ -92,70 +93,109 @@ class _RetailerDashboardPageState extends State<RetailerDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool mobile = isMobile(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[200], // Page background
+      appBar: mobile ? AppBar(
+        title: const Text('Dashboard'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+      ) : null,
+      drawer: mobile ? const Drawer(
+        child: RetailerMainSidebar(selectedPage: 'dashboard'),
+      ) : null,
       body: Row(
         children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'dashboard'),
+          // --- Sidebar (Desktop only) ---
+          if (!mobile)
+            const RetailerMainSidebar(selectedPage: 'dashboard'),
 
           // --- Main Content ---
           Expanded(
             child: SingleChildScrollView(
               // The main padding for the whole content area
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(mobile ? 16 : 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Header ---
-                  const Text(
-                    'Dashboard',
-                    // Using the theme's style for the header
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  ),
-                  // --- FIX 1: Reduced space ---
-                  const SizedBox(height: 16), // Was 24
+                  // --- Header (Desktop only, mobile uses AppBar) ---
+                  if (!mobile)
+                    const Text(
+                      'Dashboard',
+                      // Using the theme's style for the header
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    ),
+                  if (!mobile)
+                    const SizedBox(height: 16),
 
-                  // --- Summary Cards Layout (Single Row) ---
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: SummaryCard(
-                          title: 'My Revenue',
-                          value: _myRevenue,
-                          color: Colors.green,
-                        ),
+                  // --- Summary Cards Layout ---
+                  mobile 
+                    ? Column(
+                        children: [
+                          SummaryCard(
+                            title: 'My Revenue',
+                            value: _myRevenue,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(height: 16),
+                          SummaryCard(
+                            title: 'Pending Orders',
+                            value: _pendingOrders,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(height: 16),
+                          SummaryCard(
+                            title: 'Low Stock Items',
+                            value: _lowStockItems,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(height: 16),
+                          SummaryCard(
+                            title: 'New Customers',
+                            value: _newCustomers,
+                            color: Colors.purple,
+                          ),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: SummaryCard(
+                              title: 'My Revenue',
+                              value: _myRevenue,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: SummaryCard(
+                              title: 'Pending Orders',
+                              value: _pendingOrders,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: SummaryCard(
+                              title: 'Low Stock Items',
+                              value: _lowStockItems,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: SummaryCard(
+                              title: 'New Customers',
+                              value: _newCustomers,
+                              color: Colors.purple,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 20), // Spacing between cards
-                      Expanded(
-                        child: SummaryCard(
-                          title: 'Pending Orders',
-                          value: _pendingOrders,
-                          color: Colors.red,
-                        ),
-                      ),
-                      const SizedBox(width: 20), // Spacing between cards
-                      Expanded(
-                        child: SummaryCard(
-                          title: 'Low Stock Items',
-                          value: _lowStockItems,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 20), // Spacing between cards
-                      Expanded(
-                        child: SummaryCard(
-                          title: 'New Customers',
-                          value: _newCustomers,
-                          color: Colors.purple,
-                        ),
-                      ),
-                    ],
-                  ),
 
-                  // --- FIX 2: Reduced space ---
-                  const SizedBox(height: 20), // Was 24
+                  const SizedBox(height: 20),
 
                   // --- Recent Orders ---
                   const Text(
@@ -164,15 +204,30 @@ class _RetailerDashboardPageState extends State<RetailerDashboardPage> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // The ReusableOrderTable
-                  ReusableOrderTable(
-                    orders: _recentOrders, // Pass the hardcoded data
-                    selectedOrderIds: _selectedOrderIds,
-                    onSelectAll: _onSelectAll,
-                    onSelectRow: _onSelectRow,
-                    showCustomerIdColumn: true,
-                    customerColumnTitle: "Customer", // Rename column
-                  ),
+                  // The ReusableOrderTable (wrapped for horizontal scrolling on mobile)
+                  mobile 
+                    ? SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: 800, // Fixed width for table on mobile
+                          child: ReusableOrderTable(
+                            orders: _recentOrders,
+                            selectedOrderIds: _selectedOrderIds,
+                            onSelectAll: _onSelectAll,
+                            onSelectRow: _onSelectRow,
+                            showCustomerIdColumn: true,
+                            customerColumnTitle: "Customer",
+                          ),
+                        ),
+                      )
+                    : ReusableOrderTable(
+                        orders: _recentOrders,
+                        selectedOrderIds: _selectedOrderIds,
+                        onSelectAll: _onSelectAll,
+                        onSelectRow: _onSelectRow,
+                        showCustomerIdColumn: true,
+                        customerColumnTitle: "Customer",
+                      ),
                 ],
               ),
             ),

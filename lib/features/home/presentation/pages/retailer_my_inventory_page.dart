@@ -4,7 +4,8 @@ import '../widgets/retailer_main_sidebar.dart';
 import '../widgets/inventory_table.dart';
 import '../widgets/reusable_search_bar.dart';
 // Import the new dialog
-import '../widgets/add_inventory_dialog.dart'; 
+import '../widgets/add_inventory_dialog.dart';
+import '../widgets/responsive_layout.dart'; 
 
 class RetailerMyInventoryPage extends StatefulWidget {
   const RetailerMyInventoryPage({super.key});
@@ -116,21 +117,35 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool mobile = isMobile(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[200],
+      appBar: mobile ? AppBar(
+        title: const Text('My Inventory'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            onPressed: _onAddNewItem,
+            icon: const Icon(Icons.add),
+            tooltip: 'Add New Item',
+          ),
+        ],
+      ) : null,
+      drawer: mobile ? const Drawer(
+        child: RetailerMainSidebar(selectedPage: 'my_inventory'),
+      ) : null,
       body: Row(
         children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'my_inventory'),
+          // --- Sidebar (Desktop only) ---
+          if (!mobile)
+            const RetailerMainSidebar(selectedPage: 'my_inventory'),
 
           // --- Main Content ---
-          //
-          // --- THIS IS THE LAYOUT FIX ---
-          //
           Expanded(
-            // We use a Column to lay out the header and the table
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(mobile ? 16 : 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -144,21 +159,23 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'My Inventory',
-                              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: _onAddNewItem, // This now works!
-                              icon: const Icon(Icons.add),
-                              label: const Text('Add New Item'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
+                        if (!mobile)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'My Inventory',
+                                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: _onAddNewItem,
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add New Item'),
+                              ),
+                            ],
+                          ),
+                        if (!mobile)
+                          const SizedBox(height: 24),
                         ReusableSearchBar(
                           hintText: 'Search by Product Name, Category...',
                           onChanged: _onSearchChanged,
@@ -166,13 +183,9 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24), // Space between boxes
+                  SizedBox(height: mobile ? 16 : 24),
 
                   // --- Inventory Table (This is the bottom white box) ---
-                  //
-                  // This Expanded widget forces the container
-                  // and table to fill ALL remaining empty space.
-                  //
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -180,14 +193,23 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      // The InventoryTable widget is now the direct child.
-                      // This container gives it the fixed height it needs
-                      // for its internal vertical scrolling to work.
-                      child: InventoryTable(
-                        items: _filteredItems,
-                        onEdit: _onEditItem,
-                        onDelete: _onDeleteItem, // This now works!
-                      ),
+                      child: mobile 
+                        ? SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: 800,
+                              child: InventoryTable(
+                                items: _filteredItems,
+                                onEdit: _onEditItem,
+                                onDelete: _onDeleteItem,
+                              ),
+                            ),
+                          )
+                        : InventoryTable(
+                            items: _filteredItems,
+                            onEdit: _onEditItem,
+                            onDelete: _onDeleteItem,
+                          ),
                     ),
                   ),
                 ],
