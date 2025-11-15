@@ -7,7 +7,8 @@ import '../widgets/reusable_search_bar.dart';
 import '../widgets/status_filter_chips.dart';
 // --- UPDATED IMPORTS ---
 // We are removing the table and adding the card
-import '../widgets/product_card.dart'; 
+import '../widgets/product_card.dart';
+import '../widgets/responsive_layout.dart'; 
 
 class RetailerBrowseProductsPage extends StatefulWidget {
   const RetailerBrowseProductsPage({super.key});
@@ -95,23 +96,34 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
 
   @override
   Widget build(BuildContext context) {
+    final bool mobile = isMobile(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[200],
+      appBar: mobile ? AppBar(
+        title: const Text('Browse Products'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+      ) : null,
+      drawer: mobile ? const Drawer(
+        child: RetailerMainSidebar(selectedPage: 'browse_products'),
+      ) : null,
       body: Row(
         children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'browse_products'),
+          // --- Sidebar (Desktop only) ---
+          if (!mobile)
+            const RetailerMainSidebar(selectedPage: 'browse_products'),
 
           // --- Main Content ---
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(mobile ? 16 : 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // --- Header & Filters (Top white box) ---
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(mobile ? 16 : 24),
                     decoration: BoxDecoration(
                        color: Colors.white, 
                        borderRadius: BorderRadius.circular(8),
@@ -119,11 +131,13 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Browse Products',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
+                        if (!mobile)
+                          const Text(
+                            'Browse Products',
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                          ),
+                        if (!mobile)
+                          const SizedBox(height: 24),
                         Row(
                           children: [
                             Expanded(
@@ -149,26 +163,21 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                     ),
                   ),
 
-                  const SizedBox(height: 24), // Space between boxes
+                  SizedBox(height: mobile ? 16 : 24),
 
-                  // --- *** THIS IS THE NEW GRID LAYOUT *** ---
-                  //
-                  // This Expanded widget forces the grid to fill
-                  // all the remaining empty space.
-                  //
+                  // --- Product Grid ---
                   Expanded(
                     child: GridView.builder(
-                      padding: const EdgeInsets.all(0), // No padding needed, grid handles it
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 300, // Max width for each card
-                        mainAxisSpacing: 20, // Space between rows
-                        crossAxisSpacing: 20, // Space between columns
-                        childAspectRatio: 0.7, // Taller cards (height > width)
+                      padding: const EdgeInsets.all(0),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: mobile ? 200 : 300,
+                        mainAxisSpacing: mobile ? 12 : 20,
+                        crossAxisSpacing: mobile ? 12 : 20,
+                        childAspectRatio: 0.7,
                       ),
                       itemCount: _filteredProducts.length,
                       itemBuilder: (context, index) {
                         final product = _filteredProducts[index];
-                        // Use the new ProductCard widget
                         return ProductCard(
                           product: product,
                           onAddToCart: () => _onAddToCart(product),

@@ -6,6 +6,7 @@ import '../widgets/retailer_main_sidebar.dart';
 import '../widgets/reusable_order_table.dart';
 import '../widgets/reusable_search_bar.dart';
 import '../widgets/status_filter_chips.dart';
+import '../widgets/responsive_layout.dart';
 
 class RetailerMyPurchasesPage extends StatefulWidget {
   const RetailerMyPurchasesPage({super.key});
@@ -107,21 +108,28 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool mobile = isMobile(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[200],
+      appBar: mobile ? AppBar(
+        title: const Text('My Purchases'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+      ) : null,
+      drawer: mobile ? const Drawer(
+        child: RetailerMainSidebar(selectedPage: 'my_purchases'),
+      ) : null,
       body: Row(
         children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'my_purchases'),
+          // --- Sidebar (Desktop only) ---
+          if (!mobile)
+            const RetailerMainSidebar(selectedPage: 'my_purchases'),
 
           // --- Main Content ---
-          //
-          // --- THIS IS THE LAYOUT FIX ---
-          //
           Expanded(
-            // We use a Column to lay out the header and the table
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(mobile ? 16 : 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -135,31 +143,32 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start, 
                       children: [
-                        const Text(
-                          'My Purchases',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
+                        if (!mobile)
+                          const Text(
+                            'My Purchases',
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                          ),
+                        if (!mobile)
+                          const SizedBox(height: 24),
                         ReusableSearchBar(
                           hintText: 'Search by Order ID, Wholesaler ID...',
                           onChanged: _onSearchChanged,
                         ),
                         const SizedBox(height: 16),
-                        StatusFilterChips(
-                          filters: _filters,
-                          selectedFilter: _selectedStatus,
-                          onSelected: _onStatusSelected,
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: StatusFilterChips(
+                            filters: _filters,
+                            selectedFilter: _selectedStatus,
+                            onSelected: _onStatusSelected,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24), // Space between boxes
+                  SizedBox(height: mobile ? 16 : 24),
 
                   // --- Purchases Table (This is the bottom white box) ---
-                  //
-                  // This Expanded widget forces the container
-                  // and table to fill ALL remaining empty space.
-                  //
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -167,17 +176,29 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      // This container gives the ReusableOrderTable a fixed
-                      // height, which allows its internal vertical scrolling
-                      // to work without errors.
-                      child: ReusableOrderTable(
-                        orders: _filteredPurchases,
-                        selectedOrderIds: _selectedPurchaseIds,
-                        onSelectAll: _onSelectAll,
-                        onSelectRow: _onSelectRow,
-                        showCustomerIdColumn: true,
-                        customerColumnTitle: "Wholesaler ID", 
-                      ),
+                      child: mobile 
+                        ? SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: 800,
+                              child: ReusableOrderTable(
+                                orders: _filteredPurchases,
+                                selectedOrderIds: _selectedPurchaseIds,
+                                onSelectAll: _onSelectAll,
+                                onSelectRow: _onSelectRow,
+                                showCustomerIdColumn: true,
+                                customerColumnTitle: "Wholesaler ID", 
+                              ),
+                            ),
+                          )
+                        : ReusableOrderTable(
+                            orders: _filteredPurchases,
+                            selectedOrderIds: _selectedPurchaseIds,
+                            onSelectAll: _onSelectAll,
+                            onSelectRow: _onSelectRow,
+                            showCustomerIdColumn: true,
+                            customerColumnTitle: "Wholesaler ID", 
+                          ),
                     ),
                   ),
                 ],

@@ -7,7 +7,8 @@ import '../widgets/reusable_search_bar.dart';
 // Import the new card widget
 import '../widgets/customer_card.dart'; 
 // We can reuse the filter chips for the tabs
-import '../widgets/status_filter_chips.dart'; 
+import '../widgets/status_filter_chips.dart';
+import '../widgets/responsive_layout.dart'; 
 
 class RetailerCustomersPage extends StatefulWidget {
   const RetailerCustomersPage({super.key});
@@ -98,26 +99,34 @@ class _RetailerCustomersPageState extends State<RetailerCustomersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool mobile = isMobile(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[200],
+      appBar: mobile ? AppBar(
+        title: const Text('My Customers'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+      ) : null,
+      drawer: mobile ? const Drawer(
+        child: RetailerMainSidebar(selectedPage: 'customers'),
+      ) : null,
       body: Row(
         children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'customers'),
+          // --- Sidebar (Desktop only) ---
+          if (!mobile)
+            const RetailerMainSidebar(selectedPage: 'customers'),
 
           // --- Main Content ---
-          //
-          // --- THIS IS THE LAYLayout FIX ---
-          //
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(mobile ? 16 : 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // --- Header & Filters (This is the top white box) ---
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(mobile ? 16 : 24),
                     decoration: BoxDecoration(
                        color: Colors.white,
                        borderRadius: BorderRadius.circular(8),
@@ -126,11 +135,13 @@ class _RetailerCustomersPageState extends State<RetailerCustomersPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Title
-                        const Text(
-                          'My Customers',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
+                        if (!mobile)
+                          const Text(
+                            'My Customers',
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                          ),
+                        if (!mobile)
+                          const SizedBox(height: 24),
                         // Search Bar
                         ReusableSearchBar(
                           hintText: 'Search by username, email...',
@@ -138,31 +149,28 @@ class _RetailerCustomersPageState extends State<RetailerCustomersPage> {
                         ),
                         const SizedBox(height: 16),
                         // Filter Tabs
-                        StatusFilterChips(
-                          filters: _tabs,
-                          selectedFilter: _selectedTab,
-                          onSelected: _onTabSelected,
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: StatusFilterChips(
+                            filters: _tabs,
+                            selectedFilter: _selectedTab,
+                            onSelected: _onTabSelected,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: mobile ? 16 : 24),
 
-                  // --- Customer Grid (This is the bottom box) ---
-                  //
-                  // This Expanded widget forces the grid to fill
-                  // all the remaining empty space.
-                  //
+                  // --- Customer Grid ---
                   Expanded(
                     child: GridView.builder(
-                      padding: const EdgeInsets.all(0), // Padding is handled by the page
-                      // GridView.builder automatically scrolls,
-                      // so we don't need a SingleChildScrollView.
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 280, // A good width for these cards
-                        mainAxisSpacing: 20,
-                        crossAxisSpacing: 20,
-                        childAspectRatio: 0.8, // Taller cards
+                      padding: const EdgeInsets.all(0),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: mobile ? 180 : 280,
+                        mainAxisSpacing: mobile ? 12 : 20,
+                        crossAxisSpacing: mobile ? 12 : 20,
+                        childAspectRatio: 0.8,
                       ),
                       itemCount: _filteredCustomers.length,
                       itemBuilder: (context, index) {

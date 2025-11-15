@@ -8,6 +8,7 @@ import '../widgets/retailer_main_sidebar.dart';
 import '../widgets/reusable_order_table.dart';
 import '../widgets/reusable_search_bar.dart';
 import '../widgets/status_filter_chips.dart';
+import '../widgets/responsive_layout.dart';
 
 class RetailerCustomerOrdersPage extends StatefulWidget {
   const RetailerCustomerOrdersPage({super.key});
@@ -151,21 +152,28 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
 
   @override
   Widget build(BuildContext context) {
+    final bool mobile = isMobile(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[200],
+      appBar: mobile ? AppBar(
+        title: const Text('Customer Orders'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+      ) : null,
+      drawer: mobile ? const Drawer(
+        child: RetailerMainSidebar(selectedPage: 'customer_orders'),
+      ) : null,
       body: Row(
         children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'customer_orders'),
+          // --- Sidebar (Desktop only) ---
+          if (!mobile)
+            const RetailerMainSidebar(selectedPage: 'customer_orders'),
 
           // --- Main Content ---
-          //
-          // --- THIS IS THE LAYOUT FIX ---
-          //
           Expanded(
-            // We use a Column to lay out the header and the table
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(mobile ? 16 : 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -177,34 +185,34 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
-                      // We add the title *inside* this box
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Customer Orders',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
+                        if (!mobile)
+                          const Text(
+                            'Customer Orders',
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                          ),
+                        if (!mobile)
+                          const SizedBox(height: 24),
                         ReusableSearchBar(
                           hintText: 'Search by Order ID, Customer ID...',
                           onChanged: _onSearchChanged,
                         ),
                         const SizedBox(height: 16),
-                        StatusFilterChips(
-                          filters: _filters,
-                          selectedFilter: _selectedStatus,
-                          onSelected: _onStatusSelected,
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: StatusFilterChips(
+                            filters: _filters,
+                            selectedFilter: _selectedStatus,
+                            onSelected: _onStatusSelected,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: mobile ? 16 : 24),
 
                   // --- Orders Table (This is the bottom white box) ---
-                  //
-                  // This Expanded widget forces the container
-                  // and table to fill ALL remaining empty space.
-                  //
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -212,55 +220,93 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      // We use a Column + Expanded to contain the table
-                      // AND the action bar below it.
                       child: Column(
                         children: [
                           Expanded(
-                            // This container gives the table a fixed height
-                            // for its internal scrolling to work.
-                            child: ReusableOrderTable(
-                              orders: _filteredOrders,
-                              selectedOrderIds: _selectedOrderIds,
-                              onSelectAll: _onSelectAll,
-                              onSelectRow: _onSelectRow,
-                              showCustomerIdColumn: true,
-                              customerColumnTitle: "Customer ID", 
-                            ),
+                            child: mobile 
+                              ? SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: SizedBox(
+                                    width: 800,
+                                    child: ReusableOrderTable(
+                                      orders: _filteredOrders,
+                                      selectedOrderIds: _selectedOrderIds,
+                                      onSelectAll: _onSelectAll,
+                                      onSelectRow: _onSelectRow,
+                                      showCustomerIdColumn: true,
+                                      customerColumnTitle: "Customer ID", 
+                                    ),
+                                  ),
+                                )
+                              : ReusableOrderTable(
+                                  orders: _filteredOrders,
+                                  selectedOrderIds: _selectedOrderIds,
+                                  onSelectAll: _onSelectAll,
+                                  onSelectRow: _onSelectRow,
+                                  showCustomerIdColumn: true,
+                                  customerColumnTitle: "Customer ID", 
+                                ),
                           ),
                           
                           // --- Action Bar for Selected Orders ---
-                          // This bar will now "stick" to the bottom
-                          // of the white box, thanks to the Column.
                           if (_selectedOrderIds.isNotEmpty)
                             Padding(
-                              padding: const EdgeInsets.only(top: 16.0), // Space from table
-                              child: Row(
-                                children: [
-                                  Text(
-                                    '${_selectedOrderIds.length} selected',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                              padding: const EdgeInsets.only(top: 16.0),
+                              child: mobile 
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        '${_selectedOrderIds.length} selected',
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () => _updateSelectedOrdersStatus('confirmed'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                                        child: const Text('Confirm'),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () => _updateSelectedOrdersStatus('processing'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[700]),
+                                        child: const Text('Process'),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () => _updateSelectedOrdersStatus('delivered'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                        child: const Text('Mark as Delivered'),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Text(
+                                        '${_selectedOrderIds.length} selected',
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      const Spacer(),
+                                      ElevatedButton(
+                                        onPressed: () => _updateSelectedOrdersStatus('confirmed'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                                        child: const Text('Confirm'),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      ElevatedButton(
+                                        onPressed: () => _updateSelectedOrdersStatus('processing'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[700]),
+                                        child: const Text('Process'),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      ElevatedButton(
+                                        onPressed: () => _updateSelectedOrdersStatus('delivered'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                        child: const Text('Mark as Delivered'),
+                                      ),
+                                    ],
                                   ),
-                                  const Spacer(),
-                                  ElevatedButton(
-                                    onPressed: () => _updateSelectedOrdersStatus('confirmed'),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                                    child: const Text('Confirm'),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  ElevatedButton(
-                                    onPressed: () => _updateSelectedOrdersStatus('processing'),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[700]),
-                                    child: const Text('Process'),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  ElevatedButton(
-                                    onPressed: () => _updateSelectedOrdersStatus('delivered'),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                                    child: const Text('Mark as Delivered'),
-                                  ),
-                                ],
-                              ),
                             )
                         ],
                       ),
