@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
       //auth cubit
       BlocProvider<AuthCubit>(
         create: (context)=>
-         AuthCubit(authRepo: firebaseAuthRepo)..checkAuth()      //calls checkauth function to check if authenticated
+         AuthCubit(authRepo: firebaseAuthRepo,userRepo: firebaseUserRepo)..checkAuth()      //calls checkauth function to check if authenticated
       ),
     ],
     

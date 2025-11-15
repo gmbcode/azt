@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirebaseUserRepo implements UserRepo {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-
   //save user data
   @override
   Future<void> saveUserData(String uid, String email, String username) async {
@@ -60,6 +59,15 @@ class FirebaseUserRepo implements UserRepo {
       await _firestore.collection('users').doc(uid).delete();
     } catch (e) {
       throw Exception('Failed to delete user data: $e');
+    }
+  }
+  @override
+  Future<bool> checkIfUserExists(String uid) async{
+    try {
+      DocumentSnapshot s = await _firestore.collection('users').doc(uid).get();
+      return s.exists;
+    } catch (e) {
+      throw Exception('Failed to check if user exists: $e');
     }
   }
 }

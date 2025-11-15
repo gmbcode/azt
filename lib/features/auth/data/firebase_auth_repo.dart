@@ -67,12 +67,6 @@ class FirebaseAuthRepo implements AuthRepo {
       UserCredential userCredential = await firebaseAuth
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      //data saved to firestore
-      await userRepo.saveUserData(
-        userCredential.user!.uid,
-        email,
-        name,
-      );
 
       //create user
       AppUser user = AppUser(
@@ -135,7 +129,7 @@ class FirebaseAuthRepo implements AuthRepo {
 
     //get username from userrepo
     try {
-      final username = await userRepo.getUserUsername(firebaseUser.uid);
+      final username = await userRepo.getUserUsername(firebaseUser.uid) ;
 
       return AppUser(
         uid: firebaseUser.uid,
