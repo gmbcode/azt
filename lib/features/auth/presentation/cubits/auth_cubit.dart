@@ -2,14 +2,17 @@
 
 import 'package:azt/features/auth/domain/entities/app_user.dart';
 import 'package:azt/features/auth/domain/repos/auth_repo.dart';
+import 'package:azt/features/auth/domain/repos/user_repo.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_states.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:logger/logger.dart';
 class AuthCubit extends Cubit<AuthState>{
   final AuthRepo authRepo;
+  final UserRepo userRepo;
+  final logger = Logger();
   AppUser? _currentUser;
-
-  AuthCubit({required this.authRepo}) : super(AuthInitial());
+  String? _pendingUserName;
+  AuthCubit({required this.authRepo,required this.userRepo}) : super(AuthInitial());
 
   //get current user
   AppUser? get currentUser => _currentUser;
@@ -25,6 +28,16 @@ class AuthCubit extends Cubit<AuthState>{
     if (user!= null){
       _currentUser = user;
         if (user.emailVerified){
+          bool status = await userRepo.checkIfUserExists(user.uid);
+          logger.d("Current status is $status\n from checkAuth()");
+          if(!status){//If user does not exist on CFS then create user
+            
+            userRepo.saveUserData(
+            user.uid,
+            user.email,
+            user.name,
+            );
+          }
           emit(Authenticated(user));
         }
         else{
@@ -67,6 +80,7 @@ class AuthCubit extends Cubit<AuthState>{
       authRepo.sendEmailVerification();
       if (user != null){
         _currentUser = user;
+        _pendingUserName = name;
         if(user.emailVerified){
         emit(Authenticated(user));
         }
@@ -160,6 +174,21 @@ Future<void> checkEmailVerification() async {
       final updatedUser = await authRepo.getCurrentUser();
       
       if (updatedUser?.emailVerified ?? false) {
+        bool status = await userRepo.checkIfUserExists(updatedUser!.uid);
+        if(!status){
+            logger.d("Creating user in Firestore after email verification from checkEmailVerification:authCubit");
+            final userName = _pendingUserName ?? updatedUser.name;
+            await userRepo.saveUserData(
+              user.uid,
+              user.email,
+              userName,
+            );
+            _pendingUserName = null;
+            logger.d("Firestore user created successfully");
+        } 
+        else {
+            logger.d("User already exists in Firestore");
+        }
         emit(Authenticated(updatedUser!));
       } else {
         emit(EmailNotVerified(updatedUser!));
