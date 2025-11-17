@@ -1,0 +1,63 @@
+name: Build & Deploy Flutter Web → GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+# Need write permission so the action can push to gh-pages
+permissions:
+  contents: write   # allow git push / branch creation
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (with credentials)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0            # ensure full history (safer for pushes)
+          persist-credentials: true # ensure the GITHUB_TOKEN is available to git
+
+      - name: Cache Pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.pub-cache/bin
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Set up Flutter (stable channel)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Enable web support & doctor
+        run: |
+          flutter config --enable-web
+          flutter doctor -v
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Flutter web (release)
+        run: flutter build web --release --base-href "/azt/"
+
+      - name: Ensure SPA deep-links work (copy index -> 404)
+        run: |
+          if [ -f build/web/index.html ]; then
+            cp build/web/index.html build/web/404.html || true
+          else
+            echo "No build/web/index.html found — skipping copy."
+          fi
+
+      - name: Deploy to GitHub Pages (gh-pages branch)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/web
+          publish_branch: gh-pages
