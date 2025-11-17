@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "64211053051",
+    "project_id": "azt-playground-app",
+    "storage_bucket": "azt-playground-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:64211053051:android:823078095757d815f4c35e",
+        "android_client_info": {
+          "package_name": "com.example.azt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiC3BnNnf6bpUXb7ekKEIx2tsYVbO5nVc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
