@@ -16,9 +16,17 @@ class Authenticated extends AuthState{
 
 //unauthenticated
 class Unauthenticated extends AuthState{}
+
+//email not verified
 class EmailNotVerified extends AuthState {
   final AppUser user;
   EmailNotVerified(this.user);
+}
+
+//role not selected
+class RoleNotSelected extends AuthState{
+  final AppUser user;
+  RoleNotSelected(this.user);
 }
 //errors
 class AuthError extends AuthState{

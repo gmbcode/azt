@@ -4,17 +4,22 @@ import 'package:azt/features/auth/presentation/components/loading.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_states.dart';
 import 'package:azt/features/auth/presentation/pages/auth_page.dart';
+import 'package:azt/features/auth/presentation/pages/roleselection/role_selection.dart';
 import 'package:azt/features/auth/presentation/pages/verification_screen.dart';
 // ignore: unused_import
 import 'package:azt/features/auth/presentation/pages/login_page.dart';
 // ignore: unused_import
 import 'package:azt/features/auth/presentation/pages/register_page.dart';
-import 'package:azt/features/home/presentation/pages/home_page.dart';
+import 'package:azt/features/home/presentation/pages/empty_home_page.dart';
+import 'package:azt/features/home/presentation/pages/retailer/retailer_home_page.dart';
+import 'package:azt/features/home/presentation/pages/wholesalers/wholesaler_home_page.dart';
 import 'package:azt/theme/dark_mode.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:azt/firebase_options.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'features/home/presentation/pages/retailer/retailer_dashboard_page.dart' show RetailerDashboardPage;
 void main() async {
   //firebase setup
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,13 +61,31 @@ class MyApp extends StatelessWidget {
               return const AuthPage();  
             }
 
-            //authenticated -> home page; TODO: implement different redirections 
+            //authenticated -> home page;
             if(state is Authenticated){
-              return const HomePage();
+              final userRole = state.user.roleAllot;
+              print("DEBUG: Authenticated state - role: $userRole"); // ADD THIS
+              // TODO: create separate pages for each role, for now redirect to home
+              if (userRole == 'customer') {
+                return const HomePage(); 
+              } else if (userRole == 'retailer') {
+                return const  RetailerHomePage();
+              } else if (userRole == 'wholesaler') {
+                return const WholesalerHomePage();
+              } else {
+                // Fallback, for now returned to home
+                
+                return const HomePage();
+              }
             }
             // Email of user is not verified
             if(state is EmailNotVerified){
               return const EmailVerificationScreen();
+            }
+            // Role not selected
+            if(state is RoleNotSelected){
+          
+              return const RoleSelectionpage();
             }
             //auth is loading
             else{

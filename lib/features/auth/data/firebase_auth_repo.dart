@@ -2,6 +2,7 @@ import 'package:azt/features/auth/domain/entities/app_user.dart';
 import 'package:azt/features/auth/domain/repos/auth_repo.dart';
 import 'package:azt/features/auth/domain/repos/user_repo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+// ignore: unused_import
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -30,6 +31,7 @@ class FirebaseAuthRepo implements AuthRepo {
         email: email,
         emailVerified: userCredential.user!.emailVerified,
         name: username,
+        roleAllot: null,
       );
 
       //return user
@@ -74,6 +76,7 @@ class FirebaseAuthRepo implements AuthRepo {
         email: email,
         emailVerified: userCredential.user!.emailVerified,
         name: name,
+        roleAllot: null,
       );
 
       //return user
@@ -136,6 +139,7 @@ class FirebaseAuthRepo implements AuthRepo {
         email: firebaseUser.email!,
         emailVerified: firebaseUser.emailVerified,
         name: username,
+        roleAllot: null,
       );
     } catch (e) {
       // If fetch fails, return without username
@@ -143,6 +147,7 @@ class FirebaseAuthRepo implements AuthRepo {
         uid: firebaseUser.uid,
         email: firebaseUser.email!,
         emailVerified: firebaseUser.emailVerified,
+        roleAllot: null,
       );
     }
   }
@@ -164,6 +169,7 @@ class FirebaseAuthRepo implements AuthRepo {
     }
   }
 
+  //sign in with google
   @override
   Future<AppUser?> signInWithGoogle() async {
     try {
@@ -209,6 +215,7 @@ class FirebaseAuthRepo implements AuthRepo {
         email: firebaseUser.email ?? '',
         emailVerified: firebaseUser.emailVerified,
         name: username,
+        roleAllot: null,
       );
       return appUser;
     } catch (e) {
@@ -216,6 +223,7 @@ class FirebaseAuthRepo implements AuthRepo {
       return null;
     }
   }
+
 
   Future<void> sendEmailVerification() async {
     try {
@@ -228,6 +236,7 @@ class FirebaseAuthRepo implements AuthRepo {
     }
   }
 
+  
   Future<AppUser?> reloadUser() async {
     try {
       final user = firebaseAuth.currentUser;
@@ -253,6 +262,7 @@ class FirebaseAuthRepo implements AuthRepo {
         email: updatedUser.email!,
         emailVerified: updatedUser.emailVerified,
         name: username,
+        roleAllot: null,
       );
     } catch (e) {
       throw Exception('Failed to reload user: $e');

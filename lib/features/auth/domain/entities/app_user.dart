@@ -2,13 +2,15 @@ class AppUser {
   final String uid;
   final String email;
   final bool emailVerified;
-  final String name;  // Add this field
+  final String name;
+  final String? roleAllot;
 
   AppUser({
     required this.uid,
     required this.email,
     this.emailVerified = false,
-    this.name = '',  // Default to empty string
+    this.name = '', 
+    this.roleAllot,
   });
 
   // toJson converter
@@ -18,6 +20,7 @@ class AppUser {
       'email': email,
       'emailVerified': emailVerified,
       'name': name,
+      'rollAllot':roleAllot,
     };
   }
 
@@ -28,6 +31,7 @@ class AppUser {
       email: jsonUser['email'],
       emailVerified: jsonUser['emailVerified'] ?? false,
       name: jsonUser['name'] ?? '',
+      roleAllot: jsonUser['rollAllot'],
     );
   }
 }

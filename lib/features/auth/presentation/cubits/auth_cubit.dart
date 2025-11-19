@@ -31,18 +31,39 @@ class AuthCubit extends Cubit<AuthState>{
           bool status = await userRepo.checkIfUserExists(user.uid);
           logger.d("Current status is $status\n from checkAuth()");
           if(!status){//If user does not exist on CFS then create user
-            
             userRepo.saveUserData(
             user.uid,
             user.email,
             user.name,
             );
           }
-          emit(Authenticated(user));
+
+          //check role selection
+          final role = await userRepo.getUserRole(user.uid);
+          logger.d("User Role: $role");
+
+          //USER HAS NOT SELECTED ROLE
+          if (role == null){
+            emit(RoleNotSelected(user));
+          }
+          //user has taken a role and is authenticated
+          else{
+            final updatedUser = AppUser(
+              uid: user.uid,
+              email: user.email,
+              emailVerified: user.emailVerified,
+              name: user.name,
+              roleAllot: role,
+            );
+            _currentUser = updatedUser;
+            emit(Authenticated(updatedUser));
+          }
         }
+
         else{
           emit(EmailNotVerified(user));
         }
+
     } else{
       emit(Unauthenticated());
     }
@@ -57,16 +78,33 @@ class AuthCubit extends Cubit<AuthState>{
       if (user != null){
         _currentUser = user;
           if(user.emailVerified){
-            emit(Authenticated(user));
+            
+            //check role selection
+            final role = await userRepo.getUserRole(user.uid);
+
+            if (role==null || role.isEmpty){
+              emit(RoleNotSelected(user));       //roll not selected
+            } else{
+              final updatedUser = AppUser(
+                uid: user.uid,
+                email: user.email,
+                emailVerified: user.emailVerified,
+                name: user.name,
+                roleAllot: role,
+              );
+              _currentUser = updatedUser;
+              emit(Authenticated(updatedUser));
+            }
           }
+
           else{
             emit(EmailNotVerified(user));
           }
+
       } else{
         emit(Unauthenticated());
       }
-    }
-    catch(e){
+    } catch(e){
       emit(AuthError(e.toString()));
       emit(Unauthenticated());
     }
@@ -136,7 +174,20 @@ class AuthCubit extends Cubit<AuthState>{
 
       if (user != null){
         _currentUser = user;
-        emit(Authenticated(user));
+        final role = await userRepo.getUserRole(user.uid);
+        if (role == null || role.isEmpty){  //empty role
+          emit(RoleNotSelected(user));
+        } else{                  //role selected
+          final updatedUser = AppUser(
+            uid: user.uid,
+            email: user.email,
+            emailVerified: user.emailVerified,
+            name: user.name,
+            roleAllot: role,
+          );
+          _currentUser = updatedUser;
+          emit(Authenticated(updatedUser));
+        }
       } else{
         emit(Unauthenticated());
       }
@@ -146,60 +197,126 @@ class AuthCubit extends Cubit<AuthState>{
       emit(Unauthenticated());
     }
   }
-// Send email verification
-Future<void> sendEmailVerification() async {
-  try {
-    await authRepo.sendEmailVerification();
-  } catch (e) {
-    emit(AuthError(e.toString()));
-  }
-}
 
-// Reload user to check email verification status
-Future<void> reloadUser() async {
-  try {
-    final user = await authRepo.reloadUser();
-    if (user != null) {
-      _currentUser = user;
-      emit(Authenticated(user));
+  // Send email verification
+  Future<void> sendEmailVerification() async {
+    try {
+      await authRepo.sendEmailVerification();
+    } catch (e) {
+      emit(AuthError(e.toString()));
     }
-  } catch (e) {
-    emit(AuthError(e.toString()));
   }
-}
-Future<void> checkEmailVerification() async {
-    
-    final user = await authRepo.reloadUser();
-    if (user != null) {
-      final updatedUser = await authRepo.getCurrentUser();
-      
-      if (updatedUser?.emailVerified ?? false) {
-        bool status = await userRepo.checkIfUserExists(updatedUser!.uid);
-        if(!status){
-            logger.d("Creating user in Firestore after email verification from checkEmailVerification:authCubit");
-            final userName = _pendingUserName ?? updatedUser.name;
-            await userRepo.saveUserData(
-              user.uid,
-              user.email,
-              userName,
-            );
-            _pendingUserName = null;
-            logger.d("Firestore user created successfully");
-        } 
-        else {
-            logger.d("User already exists in Firestore");
-        }
-        emit(Authenticated(updatedUser!));
-      } else {
-        emit(EmailNotVerified(updatedUser!));
+
+  // Reload user to check email verification status
+  Future<void> reloadUser() async {
+    try {
+      final user = await authRepo.reloadUser();
+      if (user != null) {
+        _currentUser = user;
+        emit(Authenticated(user));
       }
+    } catch (e) {
+      emit(AuthError(e.toString()));
     }
   }
+
+  // check email verification
+  Future<void> checkEmailVerification() async {
+      final user = await authRepo.reloadUser();
+      if (user != null) {
+        final updatedUser = await authRepo.getCurrentUser();
+        
+        if (updatedUser?.emailVerified ?? false) {
+          bool status = await userRepo.checkIfUserExists(updatedUser!.uid);
+          if(!status){
+              logger.d("Creating user in Firestore after email verification from checkEmailVerification:authCubit");
+              final userName = _pendingUserName ?? updatedUser.name;
+              await userRepo.saveUserData(
+                user.uid,
+                user.email,
+                userName,
+              );
+              _pendingUserName = null;
+              logger.d("Firestore user created successfully");
+          } 
+          else {
+              logger.d("User already exists in Firestore");
+          }
+
+          //check for role selection
+          final role = await userRepo.getUserRole(updatedUser.uid);
+          if (role == null || role.isEmpty){
+            emit(RoleNotSelected(updatedUser));
+          } else{
+            final userWithRole = AppUser(
+              uid: updatedUser.uid, 
+              email: updatedUser.email,
+              emailVerified: updatedUser.emailVerified,
+              name: updatedUser.name,
+              roleAllot: role,
+            );
+            _currentUser = userWithRole;
+            emit(Authenticated(userWithRole));
+          }
+        } else {
+          emit(EmailNotVerified(updatedUser!));
+        }
+      }
+  }
+
   Future<void> resendVerificationEmail() async {
     try {
       await authRepo.sendEmailVerification();
     } catch (e) {
       emit(AuthError(e.toString()));
+    }
+  }
+
+  //save role selection
+  Future<void> saveRoleSelection(String role, String address, String pincode, {String? businessName}) async{
+    try{
+      if (_currentUser == null){
+        throw Exception('No user logged in');
+      }
+      logger.d("Starting saveRoleSelection for role: $role");
+      emit(AuthLoading());
+
+      //save role to users collection
+      await userRepo.updateUserRole(_currentUser!.uid, role);
+      logger.d("Role updated in users collection");
+
+      //save data to role specific collections
+      await userRepo.saveRoleData(
+        _currentUser!.uid, 
+        role, 
+        address, 
+        pincode, 
+        businessName: businessName
+      );
+      logger.d("Role data saved to $role collection");
+      //update current user with role
+      final updatedUser = AppUser(
+        uid: _currentUser!.uid,
+        email: _currentUser!.email,
+        emailVerified: _currentUser!.emailVerified,
+        name: _currentUser!.name,
+        roleAllot: role,
+      );
+
+      _currentUser = updatedUser;
+      logger.d("Emitting Authenticated state with role: $role");
+      emit(Authenticated(updatedUser));
+
+      logger.d("Role selection saved successfully: $role");
+      
+    } catch(e){
+      logger.e("Failed to save role selection: $e");
+      emit(AuthError(e.toString()));
+      if (_currentUser!=null){
+        emit(RoleNotSelected(_currentUser!));
+      } else{
+        emit(Unauthenticated());
+      }
     }
   }
 }
