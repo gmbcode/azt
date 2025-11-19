@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/entities/inventory_item.dart';
 import '../../cubits/retailer_cubit.dart';
 import '../../cubits/retailer_states.dart';
 import '../../retailer_models/retailer_inventory_item_model.dart';
@@ -84,11 +85,18 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
       builder: (context) {
         return AddInventoryDialog(
           onSave: (newItem) {
-            setState(() {
-              _allItems.add(newItem);
-              _filterAndSearch();
-            });
-            print("Added new item: ${newItem.name}");
+            // Convert RetailerInventoryItemModel to InventoryItem entity
+            final item = InventoryItem(
+              id: newItem.id,
+              category: newItem.category,
+              description: newItem.description,
+              imageUrl: newItem.imageUrl,
+              name: newItem.name,
+              price: newItem.price,
+              stockremain: newItem.stockremain,
+              stocksold: newItem.stocksold,
+            );
+            context.read<RetailerCubit>().addInventoryItem(newItem.id, item);
           },
         );
       },
