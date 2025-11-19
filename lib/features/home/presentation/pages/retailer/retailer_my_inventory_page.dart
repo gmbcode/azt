@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 
+import '../../../data/retailer_repo.dart';
 import '../../retailer_models/retailer_inventory_item_model.dart';
 import '../../retailer_widgets/retailer_add_inventory_dialog.dart';
 import '../../retailer_widgets/retailer_inventory_table.dart';
@@ -16,10 +19,12 @@ class RetailerMyInventoryPage extends StatefulWidget {
 
 class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
   // --- STATE ---
+  final RetailerRepository _repo = RetailerRepository();
+  bool _isLoading = true;
+
   List<RetailerInventoryItemModel> _allItems = [];
   List<RetailerInventoryItemModel> _filteredItems = [];
   String _searchQuery = '';
-  // (State logic is unchanged)
 
   @override
   void initState() {
@@ -27,29 +32,25 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
     _fetchInventory();
   }
 
-  void _fetchInventory() {
-    // --- HARDCODED DATA ADDED ---
-    final List<RetailerInventoryItemModel> dummyItems = [
-      RetailerInventoryItemModel(
-        id: 'inv1', category: 'Fruits', description: 'My own apples',
-        imageUrl: 'https://placehold.co/400x400/a_green/fff?text=Apples',
-        name: 'My Apples', price: 1.99, stockremain: 50, stocksold: 10,
-      ),
-      RetailerInventoryItemModel(
-        id: 'inv2', category: 'Bakery', description: 'My own bread',
-        imageUrl: 'https://placehold.co/400x400/brown/fff?text=Bread',
-        name: 'My Sourdough', price: 4.50, stockremain: 30, stocksold: 5,
-      ),
-       RetailerInventoryItemModel(
-        id: 'inv3', category: 'Pantry', description: 'My local honey',
-        imageUrl: 'https://placehold.co/400x400/yellow/000?text=Honey',
-        name: 'Local Honey', price: 8.99, stockremain: 20, stocksold: 2,
-      ),
-    ];
-    setState(() {
-      _allItems = dummyItems;
-      _filteredItems = _allItems;
-    });
+  Future<void> _fetchInventory() async {
+    // Get current User ID from Cubit
+    final user = context.read<AuthCubit>().currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+
+    // FETCH FROM API using UID
+    final items = await _repo.getMyInventory(user.uid);
+
+    if (mounted) {
+      setState(() {
+        _allItems = items;
+        _filteredItems = items;
+        _isLoading = false;
+      });
+      // Apply any existing search filter
+      _filterAndSearch(); 
+    }
   }
 
   void _filterAndSearch() {
@@ -68,8 +69,8 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
   }
 
   void _onEditItem(RetailerInventoryItemModel item) {
+    // TODO: Implement Edit Dialog (similar to Add Dialog but pre-filled)
     print("Editing: ${item.name}");
-    // TODO: Implement Edit Dialog
   }
 
   void _onDeleteItem(RetailerInventoryItemModel item) {
@@ -86,11 +87,14 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
           TextButton(
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () {
-              setState(() {
-                _allItems.remove(item);
-                _filterAndSearch();
-              });
-              Navigator.of(context).pop();
+              // API CALL
+              final user = context.read<AuthCubit>().currentUser;
+              if(user != null) {
+                 _repo.deleteInventoryItem(user.uid, item.id).then((_) {
+                   _fetchInventory(); // Refresh list from DB
+                 });
+                 Navigator.of(context).pop();
+              }
             },
           ),
         ],
@@ -103,12 +107,13 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
       context: context,
       builder: (context) {
         return AddInventoryDialog(
-          onSave: (newItem) {
-            setState(() {
-              _allItems.add(newItem);
-              _filterAndSearch();
-            });
-            print("Added new item: ${newItem.name}");
+          onSave: (newItem) async {
+             final user = context.read<AuthCubit>().currentUser;
+             if (user != null) {
+               // API CALL
+               await _repo.addInventoryItem(user.uid, newItem);
+               _fetchInventory(); // Refresh list
+             }
           },
         );
       },
@@ -125,17 +130,15 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
           const RetailerMainSidebar(selectedPage: 'my_inventory'),
 
           // --- Main Content ---
-          //
-          // --- THIS IS THE LAYOUT FIX ---
-          //
           Expanded(
-            // We use a Column to lay out the header and the table
-            child: Padding(
+            child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Header & Actions (This is the top white box) ---
+                  // --- Header ---
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -153,7 +156,7 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
                               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                             ),
                             ElevatedButton.icon(
-                              onPressed: _onAddNewItem, // This now works!
+                              onPressed: _onAddNewItem,
                               icon: const Icon(Icons.add),
                               label: const Text('Add New Item'),
                             ),
@@ -167,13 +170,9 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24), // Space between boxes
+                  const SizedBox(height: 24),
 
-                  // --- Inventory Table (This is the bottom white box) ---
-                  //
-                  // This Expanded widget forces the container
-                  // and table to fill ALL remaining empty space.
-                  //
+                  // --- Table ---
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -181,13 +180,10 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      // The InventoryTable widget is now the direct child.
-                      // This container gives it the fixed height it needs
-                      // for its internal vertical scrolling to work.
                       child: InventoryTable(
                         items: _filteredItems,
                         onEdit: _onEditItem,
-                        onDelete: _onDeleteItem, // This now works!
+                        onDelete: _onDeleteItem,
                       ),
                     ),
                   ),

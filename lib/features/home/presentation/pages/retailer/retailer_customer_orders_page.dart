@@ -1,14 +1,13 @@
-// lib/pages/retailer_customer_orders_page.dart
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
+
+import '../../../data/retailer_repo.dart';
 import '../../retailer_models/retailer_order_model.dart';
-import '../../retailer_models/retailer_payment_status_model.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
 import '../../retailer_widgets/retailer_reusable_order_table.dart';
 import '../../retailer_widgets/retailer_reusable_search_bar.dart';
 import '../../retailer_widgets/retailer_status_filter_chips.dart';
-
-// We need this for the dummy data
 
 class RetailerCustomerOrdersPage extends StatefulWidget {
   const RetailerCustomerOrdersPage({super.key});
@@ -19,13 +18,15 @@ class RetailerCustomerOrdersPage extends StatefulWidget {
 
 class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage> {
   // --- STATE ---
+  final RetailerRepository _repo = RetailerRepository();
+  bool _isLoading = true;
+
   List<OrderModel> _allOrders = [];
   List<OrderModel> _filteredOrders = [];
   Set<String> _selectedOrderIds = {};
   String _selectedStatus = 'All';
   String _searchQuery = '';
 
-  // These are the statuses the RETAILER controls
   final List<String> _filters = [
     'All', 'Pending', 'Confirmed', 'Processing', 'Delivered', 'Cancelled'
   ];
@@ -36,52 +37,24 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
     _fetchOrders();
   }
 
-  void _fetchOrders() {
-    // --- HARDCODED DATA ADDED ---
-    // These are orders from the retailer's *own* customers
-    final List<OrderModel> dummyOrders = [
-      OrderModel(
-        id: 'ord-cust-001',
-        deliveryaddress: '123 Customer Lane',
-        items: [],
-        orderbyid: 'customer_1', // This is the 'Customer ID'
-        orderfromid: 'my_retailer_id', // This is me
-        ordertime: '2025-11-15T10:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'pending',
-        total: 55.0,
-        trackinghistory: [],
-      ),
-      OrderModel(
-        id: 'ord-cust-002',
-        deliveryaddress: '456 Client Ave',
-        items: [],
-        orderbyid: 'customer_2',
-        orderfromid: 'my_retailer_id',
-        ordertime: '2025-11-14T16:20:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'confirmed',
-        total: 12.50,
-        trackinghistory: [],
-      ),
-      OrderModel(
-        id: 'ord-cust-003',
-        deliveryaddress: '789 Shopper St',
-        items: [],
-        orderbyid: 'customer_3',
-        orderfromid: 'my_retailer_id',
-        ordertime: '2025-11-13T08:05:00Z',
-        paymentstatus: PaymentStatusModel(method: 'offline', status: 'pending'),
-        status: 'delivered',
-        total: 89.99,
-        trackinghistory: [],
-      ),
-    ];
+  Future<void> _fetchOrders() async {
+    final user = context.read<AuthCubit>().currentUser;
+    if (user == null) return;
     
-    setState(() {
-      _allOrders = dummyOrders;
-      _filteredOrders = _allOrders;
-    });
+    setState(() => _isLoading = true);
+
+    // FETCH orders where orderFromId == my UID
+    final orders = await _repo.getIncomingOrders(user.uid);
+
+    if (mounted) {
+      setState(() {
+        _allOrders = orders;
+        _filteredOrders = orders;
+        _isLoading = false;
+      });
+      // Re-apply filters if needed
+      _filterAndSearch();
+    }
   }
 
   void _filterAndSearch() {
@@ -127,28 +100,23 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
     });
   }
 
+  // NOTE: This function handles UI updates only for now. 
+  // You'll need to add an `updateOrderStatus` method to RetailerRepository to persist changes.
   void _updateSelectedOrdersStatus(String newStatus) {
-    // This just updates the hardcoded data for now
     setState(() {
-      // Update all items in the main list
       _allOrders = _allOrders.map((order) {
         if (_selectedOrderIds.contains(order.id)) {
-          // In a real app, you'd create a new OrderModel with the
-          // new status, but for this, we can't (they are final).
-          // For demo purposes, we'll just clear selection.
-          // A real update would re-fetch from Firebase.
+          // NOTE: OrderModel is usually immutable. 
+          // Ideally, clone it or refetch data after API update.
           print("Updating ${order.id} to $newStatus");
         }
         return order;
       }).toList();
       
-      _selectedOrderIds.clear(); // Clear selection
+      _selectedOrderIds.clear(); 
     });
-    _filterAndSearch(); // Re-filter the list
-    
-    print("Updating ${_selectedOrderIds.length} orders to $newStatus");
+    _filterAndSearch(); 
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -156,21 +124,17 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
       backgroundColor: Colors.grey[200],
       body: Row(
         children: [
-          // --- Sidebar ---
           const RetailerMainSidebar(selectedPage: 'customer_orders'),
 
-          // --- Main Content ---
-          //
-          // --- THIS IS THE LAYOUT FIX ---
-          //
           Expanded(
-            // We use a Column to lay out the header and the table
-            child: Padding(
+            child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Header & Filters (This is the top white box) ---
+                  // --- Header ---
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -178,7 +142,6 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
-                      // We add the title *inside* this box
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
@@ -201,11 +164,7 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
                   ),
                   const SizedBox(height: 24),
 
-                  // --- Orders Table (This is the bottom white box) ---
-                  //
-                  // This Expanded widget forces the container
-                  // and table to fill ALL remaining empty space.
-                  //
+                  // --- Table ---
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -213,13 +172,9 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      // We use a Column + Expanded to contain the table
-                      // AND the action bar below it.
                       child: Column(
                         children: [
                           Expanded(
-                            // This container gives the table a fixed height
-                            // for its internal scrolling to work.
                             child: ReusableOrderTable(
                               orders: _filteredOrders,
                               selectedOrderIds: _selectedOrderIds,
@@ -230,12 +185,9 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
                             ),
                           ),
                           
-                          // --- Action Bar for Selected Orders ---
-                          // This bar will now "stick" to the bottom
-                          // of the white box, thanks to the Column.
                           if (_selectedOrderIds.isNotEmpty)
                             Padding(
-                              padding: const EdgeInsets.only(top: 16.0), // Space from table
+                              padding: const EdgeInsets.only(top: 16.0),
                               child: Row(
                                 children: [
                                   Text(

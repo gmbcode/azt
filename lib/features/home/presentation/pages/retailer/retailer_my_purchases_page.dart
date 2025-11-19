@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
 
+import '../../../data/retailer_repo.dart';
 import '../../retailer_models/retailer_order_model.dart';
-import '../../retailer_models/retailer_payment_status_model.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
 import '../../retailer_widgets/retailer_reusable_order_table.dart';
 import '../../retailer_widgets/retailer_reusable_search_bar.dart';
@@ -17,6 +19,9 @@ class RetailerMyPurchasesPage extends StatefulWidget {
 
 class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
   // --- STATE ---
+  final RetailerRepository _repo = RetailerRepository();
+  bool _isLoading = true;
+
   List<OrderModel> _allPurchases = [];
   List<OrderModel> _filteredPurchases = [];
   Set<String> _selectedPurchaseIds = {};
@@ -33,36 +38,23 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
     _fetchPurchases();
   }
 
-  void _fetchPurchases() {
-    // --- HARDCODED DATA ADDED ---
-    final List<OrderModel> dummyPurchases = [
-      OrderModel(
-        id: 'WHO-1001', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_1',
-        ordertime: '2025-11-20T09:30:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'delivered', total: 450.0, trackinghistory: [],
-      ),
-      OrderModel(
-        id: 'WHO-1002', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_2',
-        ordertime: '2025-11-22T14:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'shipped', total: 120.0, trackinghistory: [],
-      ),
-       OrderModel(
-        id: 'WHO-1003', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_1',
-        ordertime: '2025-11-25T11:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'offline', status: 'pending'),
-        status: 'pending', total: 800.0, trackinghistory: [],
-      ),
-    ];
+  Future<void> _fetchPurchases() async {
+    final user = context.read<AuthCubit>().currentUser;
+    if (user == null) return;
     
-    setState(() {
-      _allPurchases = dummyPurchases;
-      _filteredPurchases = _allPurchases;
-    });
+    setState(() => _isLoading = true);
+
+    // FETCH orders where orderBy == my UID
+    final purchases = await _repo.getMyPurchases(user.uid);
+
+    if (mounted) {
+      setState(() {
+        _allPurchases = purchases;
+        _filteredPurchases = purchases;
+        _isLoading = false;
+      });
+      _filterAndSearch();
+    }
   }
 
   void _filterAndSearch() {
@@ -116,17 +108,15 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
           const RetailerMainSidebar(selectedPage: 'my_purchases'),
 
           // --- Main Content ---
-          //
-          // --- THIS IS THE LAYOUT FIX ---
-          //
           Expanded(
-            // We use a Column to lay out the header and the table
-            child: Padding(
+            child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Header & Filters (This is the top white box) ---
+                  // --- Header ---
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -154,13 +144,9 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24), // Space between boxes
+                  const SizedBox(height: 24),
 
-                  // --- Purchases Table (This is the bottom white box) ---
-                  //
-                  // This Expanded widget forces the container
-                  // and table to fill ALL remaining empty space.
-                  //
+                  // --- Table ---
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -168,9 +154,6 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      // This container gives the ReusableOrderTable a fixed
-                      // height, which allows its internal vertical scrolling
-                      // to work without errors.
                       child: ReusableOrderTable(
                         orders: _filteredPurchases,
                         selectedOrderIds: _selectedPurchaseIds,

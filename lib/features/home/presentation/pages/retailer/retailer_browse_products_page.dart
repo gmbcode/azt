@@ -1,13 +1,11 @@
-// lib/pages/retailer_browse_products_page.dart
-
 import 'package:flutter/material.dart';
 
+import '../../../data/retailer_repo.dart';
 import '../../retailer_models/retailer_product_model.dart';
 import '../../retailer_widgets/retailer_product_card.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
 import '../../retailer_widgets/retailer_reusable_search_bar.dart';
 import '../../retailer_widgets/retailer_status_filter_chips.dart';
-
 
 class RetailerBrowseProductsPage extends StatefulWidget {
   const RetailerBrowseProductsPage({super.key});
@@ -17,7 +15,10 @@ class RetailerBrowseProductsPage extends StatefulWidget {
 }
 
 class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage> {
-  // --- STATE (Unchanged) ---
+  // --- STATE ---
+  final RetailerRepository _repo = RetailerRepository();
+  bool _isLoading = true;
+  
   List<ProductModel> _allProducts = [];
   List<ProductModel> _filteredProducts = [];
   List<String> _categories = [];
@@ -30,35 +31,21 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
     _fetchProducts();
   }
 
-  // --- All internal logic (fetch, filter, search) is unchanged ---
-  void _fetchProducts() {
-    final List<ProductModel> dummyProducts = [
-      ProductModel(
-        id: 'prod1', category: 'Fruits', description: 'Fresh and organic apples.',
-        imageUrl: 'https://placehold.co/400x400/a_green/fff?text=Apples',
-        name: 'Apples', price: 80.0, stockremain: 45,
-      ),
-      ProductModel(
-        id: 'prod2', category: 'Vegetables', description: 'Locally sourced carrots.',
-        imageUrl: 'https://placehold.co/400x400/orange/fff?text=Carrots',
-        name: 'Carrots', price: 75.0, stockremain: 75,
-      ),
-      ProductModel(
-        id: 'prod3', category: 'Bakery', description: 'Freshly baked organic bread.',
-        imageUrl: 'https://placehold.co/400x400/brown/fff?text=Bread',
-        name: 'Organic Bread', price: 50.0, stockremain: 120,
-      ),
-      ProductModel(
-        id: 'prod4', category: 'Pantry', description: 'Extra virgin olive oil.',
-        imageUrl: 'https://placehold.co/400x400/olive/fff?text=Olive+Oil',
-        name: 'Olive Oil 5L', price: 1500.0, stockremain: 20,
-      ),
-    ];
-    setState(() {
-      _allProducts = dummyProducts;
-      _categories = ['All', ...dummyProducts.map((p) => p.category).toSet()];
-      _filteredProducts = _allProducts;
-    });
+  Future<void> _fetchProducts() async {
+    setState(() => _isLoading = true);
+    
+    // FETCH FROM API
+    final products = await _repo.getGlobalProducts();
+
+    if (mounted) {
+      setState(() {
+        _allProducts = products;
+        // Generate categories dynamically from the data
+        _categories = ['All', ...products.map((p) => p.category).toSet()];
+        _filteredProducts = _allProducts; // Initial filter
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterAndSearch() {
@@ -84,6 +71,7 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
   }
 
   void _onAddToCart(ProductModel product) {
+    // TODO: Implement actual cart logic (e.g. using a CartCubit)
     print("Added to cart: ${product.name}");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -104,12 +92,14 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
 
           // --- Main Content ---
           Expanded(
-            child: Padding(
+            child: _isLoading 
+             ? const Center(child: CircularProgressIndicator()) 
+             : Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Header & Filters (Top white box) ---
+                  // --- Header & Filters ---
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -133,7 +123,6 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                                 onChanged: _onSearchChanged,
                               ),
                             ),
-                            // TODO: Add a "View Cart" button here
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -149,26 +138,21 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                     ),
                   ),
 
-                  const SizedBox(height: 24), // Space between boxes
+                  const SizedBox(height: 24), 
 
-                  // --- *** THIS IS THE NEW GRID LAYOUT *** ---
-                  //
-                  // This Expanded widget forces the grid to fill
-                  // all the remaining empty space.
-                  //
+                  // --- Product Grid ---
                   Expanded(
                     child: GridView.builder(
-                      padding: const EdgeInsets.all(0), // No padding needed, grid handles it
+                      padding: const EdgeInsets.all(0), 
                       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 300, // Max width for each card
-                        mainAxisSpacing: 20, // Space between rows
-                        crossAxisSpacing: 20, // Space between columns
-                        childAspectRatio: 0.7, // Taller cards (height > width)
+                        maxCrossAxisExtent: 300, 
+                        mainAxisSpacing: 20, 
+                        crossAxisSpacing: 20, 
+                        childAspectRatio: 0.7, 
                       ),
                       itemCount: _filteredProducts.length,
                       itemBuilder: (context, index) {
                         final product = _filteredProducts[index];
-                        // Use the new ProductCard widget
                         return ProductCard(
                           product: product,
                           onAddToCart: () => _onAddToCart(product),

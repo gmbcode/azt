@@ -1,15 +1,11 @@
-// lib/models/product_model.dart
-
-// (This is the class you provided, now in its own file)
 class ProductModel {
-  final String id; // The "dummy" key
+  final String id;
   final String category;
   final String description;
   final String imageUrl;
   final String name;
-  final double price; // Wholesale price
+  final double price;
   final int stockremain;
-  // 'stocksold' is not needed for browsing, but could be added
 
   ProductModel({
     required this.id,
@@ -21,12 +17,13 @@ class ProductModel {
     required this.stockremain,
   });
 
-  factory ProductModel.fromJson(String id, Map<String, dynamic> json) {
+  factory ProductModel.fromJson(String id, Map<dynamic, dynamic> json) {
     return ProductModel(
       id: id,
       category: json['category'] ?? 'Uncategorized',
       description: json['description'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
+      // Check both 'imageurl' (RTDB) and 'imageUrl' (standard)
+      imageUrl: json['imageurl'] ?? json['imageUrl'] ?? 'https://placehold.co/400x400/grey/white?text=No+Image',
       name: json['name'] ?? 'No Name',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       stockremain: (json['stockremain'] as num?)?.toInt() ?? 0,
