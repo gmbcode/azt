@@ -1,7 +1,10 @@
 // lib/pages/retailer_customers_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../cubits/retailer_cubit.dart';
+import '../../cubits/retailer_states.dart';
 import '../../retailer_models/retailer_customer_model.dart';
 import '../../retailer_widgets/retailer_customer_card.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
@@ -31,34 +34,7 @@ class _RetailerCustomersPageState extends State<RetailerCustomersPage> {
   }
 
   void _fetchCustomers() {
-    // --- HARDCODED DATA ADDED ---
-    final List<CustomerModel> dummyCustomers = [
-       CustomerModel(
-        id: 'cust1', email: 'john@example.com', username: 'John Smith',
-        usertype: 'consumer', address: '123 Main St, NY',
-      ),
-      CustomerModel(
-        id: 'cust2', email: 'daily@market.com', username: 'The Daily Market',
-        usertype: 'consumer', address: '456 Oak Rd, CA',
-      ),
-      CustomerModel(
-        id: 'cust3', email: 'green@earth.com', username: 'Green Earth Organics',
-        usertype: 'consumer', address: '789 Pine Ln, TX',
-      ),
-       CustomerModel(
-        id: 'cust4', email: 'lira@example.com', username: 'Lirath Angels',
-        usertype: 'consumer', address: '202 Birch Ct',
-      ),
-       CustomerModel(
-        id: 'cust5', email: 'angeles@ca.com', username: 'Angeles CA',
-        usertype: 'consumer', address: '999 Maple Dr',
-      ),
-    ];
-
-    setState(() {
-      _allCustomers = dummyCustomers;
-      _filteredCustomers = _allCustomers;
-    });
+    context.read<RetailerCubit>().fetchCustomers();
   }
 
   void _runFilters() {
@@ -97,9 +73,28 @@ class _RetailerCustomersPageState extends State<RetailerCustomersPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: Row(
+    return BlocListener<RetailerCubit, RetailerState>(
+      listener: (context, state) {
+        if (state is RetailerCustomersLoaded) {
+          setState(() {
+            _allCustomers = state.customers.map((customer) => CustomerModel(
+              id: customer.id,
+              email: customer.emailId,
+              username: customer.id, // Using id as username since Customer entity doesn't have username
+              usertype: 'consumer',
+              address: customer.address,
+            )).toList();
+            _runFilters();
+          });
+        } else if (state is RetailerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[200],
+        body: Row(
         children: [
           // --- Sidebar ---
           const RetailerMainSidebar(selectedPage: 'customers'),
@@ -178,6 +173,7 @@ class _RetailerCustomersPageState extends State<RetailerCustomersPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

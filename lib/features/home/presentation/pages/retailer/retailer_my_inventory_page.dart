@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../cubits/retailer_cubit.dart';
+import '../../cubits/retailer_states.dart';
 import '../../retailer_models/retailer_inventory_item_model.dart';
 import '../../retailer_widgets/retailer_add_inventory_dialog.dart';
 import '../../retailer_widgets/retailer_inventory_table.dart';
@@ -28,28 +31,8 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
   }
 
   void _fetchInventory() {
-    // --- HARDCODED DATA ADDED ---
-    final List<RetailerInventoryItemModel> dummyItems = [
-      RetailerInventoryItemModel(
-        id: 'inv1', category: 'Fruits', description: 'My own apples',
-        imageUrl: 'https://placehold.co/400x400/a_green/fff?text=Apples',
-        name: 'My Apples', price: 1.99, stockremain: 50, stocksold: 10,
-      ),
-      RetailerInventoryItemModel(
-        id: 'inv2', category: 'Bakery', description: 'My own bread',
-        imageUrl: 'https://placehold.co/400x400/brown/fff?text=Bread',
-        name: 'My Sourdough', price: 4.50, stockremain: 30, stocksold: 5,
-      ),
-       RetailerInventoryItemModel(
-        id: 'inv3', category: 'Pantry', description: 'My local honey',
-        imageUrl: 'https://placehold.co/400x400/yellow/000?text=Honey',
-        name: 'Local Honey', price: 8.99, stockremain: 20, stocksold: 2,
-      ),
-    ];
-    setState(() {
-      _allItems = dummyItems;
-      _filteredItems = _allItems;
-    });
+    // Fetch inventory from RTDB using the Cubit
+    context.read<RetailerCubit>().fetchInventory();
   }
 
   void _filterAndSearch() {
@@ -86,10 +69,7 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
           TextButton(
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () {
-              setState(() {
-                _allItems.remove(item);
-                _filterAndSearch();
-              });
+              context.read<RetailerCubit>().deleteInventoryItem(item.id);
               Navigator.of(context).pop();
             },
           ),
@@ -117,9 +97,31 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: Row(
+    return BlocListener<RetailerCubit, RetailerState>(
+      listener: (context, state) {
+        if (state is RetailerInventoryLoaded) {
+          setState(() {
+            _allItems = state.items.map((item) => RetailerInventoryItemModel(
+              id: item.id,
+              category: item.category,
+              description: item.description,
+              imageUrl: item.imageUrl,
+              name: item.name,
+              price: item.price,
+              stockremain: item.stockremain,
+              stocksold: item.stocksold,
+            )).toList();
+            _filterAndSearch();
+          });
+        } else if (state is RetailerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[200],
+        body: Row(
         children: [
           // --- Sidebar ---
           const RetailerMainSidebar(selectedPage: 'my_inventory'),
@@ -196,6 +198,7 @@ class _RetailerMyInventoryPageState extends State<RetailerMyInventoryPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

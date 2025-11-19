@@ -1,7 +1,10 @@
 // lib/pages/retailer_browse_products_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../cubits/retailer_cubit.dart';
+import '../../cubits/retailer_states.dart';
 import '../../retailer_models/retailer_product_model.dart';
 import '../../retailer_widgets/retailer_product_card.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
@@ -32,33 +35,7 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
 
   // --- All internal logic (fetch, filter, search) is unchanged ---
   void _fetchProducts() {
-    final List<ProductModel> dummyProducts = [
-      ProductModel(
-        id: 'prod1', category: 'Fruits', description: 'Fresh and organic apples.',
-        imageUrl: 'https://placehold.co/400x400/a_green/fff?text=Apples',
-        name: 'Apples', price: 80.0, stockremain: 45,
-      ),
-      ProductModel(
-        id: 'prod2', category: 'Vegetables', description: 'Locally sourced carrots.',
-        imageUrl: 'https://placehold.co/400x400/orange/fff?text=Carrots',
-        name: 'Carrots', price: 75.0, stockremain: 75,
-      ),
-      ProductModel(
-        id: 'prod3', category: 'Bakery', description: 'Freshly baked organic bread.',
-        imageUrl: 'https://placehold.co/400x400/brown/fff?text=Bread',
-        name: 'Organic Bread', price: 50.0, stockremain: 120,
-      ),
-      ProductModel(
-        id: 'prod4', category: 'Pantry', description: 'Extra virgin olive oil.',
-        imageUrl: 'https://placehold.co/400x400/olive/fff?text=Olive+Oil',
-        name: 'Olive Oil 5L', price: 1500.0, stockremain: 20,
-      ),
-    ];
-    setState(() {
-      _allProducts = dummyProducts;
-      _categories = ['All', ...dummyProducts.map((p) => p.category).toSet()];
-      _filteredProducts = _allProducts;
-    });
+    context.read<RetailerCubit>().fetchProducts();
   }
 
   void _filterAndSearch() {
@@ -95,9 +72,31 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: Row(
+    return BlocListener<RetailerCubit, RetailerState>(
+      listener: (context, state) {
+        if (state is RetailerProductsLoaded) {
+          setState(() {
+            _allProducts = state.products.map((product) => ProductModel(
+              id: product.id,
+              category: product.category,
+              description: product.description,
+              imageUrl: product.imageUrl,
+              name: product.name,
+              price: product.price,
+              stockremain: 0, // Note: Product entity doesn't have stockremain
+            )).toList();
+            _categories = ['All', ..._allProducts.map((p) => p.category).toSet()];
+            _filterAndSearch();
+          });
+        } else if (state is RetailerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[200],
+        body: Row(
         children: [
           // --- Sidebar ---
           const RetailerMainSidebar(selectedPage: 'browse_products'),
@@ -181,6 +180,7 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
             ),
           ),
         ],
+      ),
       ),
     );
   }

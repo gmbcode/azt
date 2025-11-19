@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 // Should already be there, but verify:
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
+import '../../cubits/retailer_cubit.dart';
+import '../../cubits/retailer_states.dart';
 import '../../retailer_models/retailer_order_model.dart';
 import '../../retailer_models/retailer_payment_status_model.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
 import '../../retailer_widgets/retailer_reusable_order_table.dart';
 import '../../retailer_widgets/retailer_summary_card.dart';
-// Import the models we need for the hardcoded data
 
 
 class RetailerDashboardPage extends StatefulWidget {
@@ -19,58 +20,30 @@ class RetailerDashboardPage extends StatefulWidget {
 
 class _RetailerDashboardPageState extends State<RetailerDashboardPage> {
   // --- STATE ---
-  // We will now hardcode the data as requested.
-  // The _fetchDashboardData method is no longer needed for this.
+  // Summary card stats (calculated from fetched data)
+  String _myRevenue = '\$0';
+  String _pendingOrders = '0';
+  String _lowStockItems = '0';
+  String _newCustomers = '0';
 
-  // 1. Hardcoded data for Summary Cards
-  // These are the stats for the RETAILER
-  final String _myRevenue = '\$12,340';
-  final String _pendingOrders = '15';
-  final String _lowStockItems = '8';
-  final String _newCustomers = '3';
-
-  // 2. Hardcoded data for the "Recent Orders" table
-  final List<OrderModel> _recentOrders = [
-    OrderModel(
-      id: 'ord987',
-      deliveryaddress: '123 Fake St',
-      items: [],
-      orderbyid: 'customerid_1', // This is the 'Customer' column
-      orderfromid: 'my_retailer_id', // This is the retailer
-      ordertime: '2025-11-14T09:00:00Z',
-      paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-      status: 'delivered', // This is the 'Status' column
-      total: 100.00,
-      trackinghistory: [],
-    ),
-    OrderModel(
-      id: 'ord988',
-      deliveryaddress: '456 Main Ave',
-      items: [],
-      orderbyid: 'customerid_2',
-      orderfromid: 'my_retailer_id',
-      ordertime: '2025-11-13T14:30:00Z',
-      paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-      status: 'processing',
-      total: 1500.00,
-      trackinghistory: [],
-    ),
-    OrderModel(
-      id: 'ord989',
-      deliveryaddress: '789 Other Blvd',
-      items: [],
-      orderbyid: 'customerid_1', // Same customer, different order
-      orderfromid: 'my_retailer_id',
-      ordertime: '2025-11-12T11:15:00Z',
-      paymentstatus: PaymentStatusModel(method: 'offline', status: 'pending'),
-      status: 'pending',
-      total: 75.50,
-      trackinghistory: [],
-    ),
-  ];
+  // Recent orders from RTDB
+  List<OrderModel> _recentOrders = [];
 
   // We still need state for the table selection
   Set<String> _selectedOrderIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData();
+  }
+
+  void _fetchDashboardData() {
+    // Fetch customer orders from RTDB
+    context.read<RetailerCubit>().fetchCustomerOrders();
+    // We could also fetch inventory to calculate low stock items
+    // context.read<RetailerCubit>().fetchInventory();
+  }
 
 
   // --- Table Selection Logic (unchanged) ---
@@ -95,9 +68,43 @@ class _RetailerDashboardPageState extends State<RetailerDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200], // Page background
-      body: Row(
+    return BlocListener<RetailerCubit, RetailerState>(
+      listener: (context, state) {
+        if (state is RetailerCustomerOrdersLoaded) {
+          setState(() {
+            _recentOrders = state.orders.map((order) => OrderModel(
+              id: order.id,
+              deliveryaddress: order.deliveryAddress,
+              items: [],
+              orderbyid: order.orderById,
+              orderfromid: order.orderFromId,
+              ordertime: order.orderTime,
+              paymentstatus: PaymentStatusModel(
+                method: order.paymentStatus.method,
+                status: order.paymentStatus.status,
+              ),
+              status: order.status,
+              total: order.total,
+              trackinghistory: [],
+            )).toList();
+
+            // Calculate summary stats from orders
+            final revenue = _recentOrders.fold<double>(0, (sum, order) => sum + order.total);
+            _myRevenue = '\$${revenue.toStringAsFixed(2)}';
+            _pendingOrders = _recentOrders.where((o) => o.status.toLowerCase() == 'pending').length.toString();
+            // For now, we'll keep these as placeholder values
+            _lowStockItems = '0';
+            _newCustomers = _recentOrders.map((o) => o.orderbyid).toSet().length.toString();
+          });
+        } else if (state is RetailerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[200], // Page background
+        body: Row(
         children: [
           // --- Sidebar ---
           const RetailerMainSidebar(selectedPage: 'dashboard'),
@@ -181,6 +188,7 @@ class _RetailerDashboardPageState extends State<RetailerDashboardPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -1,4 +1,7 @@
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:azt/features/auth/presentation/cubits/auth_states.dart';
+import 'package:azt/features/home/data/firebase_retailer_repo.dart';
+import 'package:azt/features/home/presentation/cubits/retailer_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 // Should already be there, but verify:
@@ -18,7 +21,20 @@ class _RetailerHomePageState extends State<RetailerHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // Get the authenticated user's UID from AuthCubit
+    final authState = context.read<AuthCubit>().state;
+    String uid = '';
+    if (authState is Authenticated) {
+      uid = authState.user.uid;
+    }
+
+    // Provide RetailerCubit with the user's UID
+    return BlocProvider(
+      create: (context) => RetailerCubit(
+        retailerRepo: FirebaseRetailerRepo(),
+        uid: uid,
+      ),
+      child: Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
         title: const Text("Retailer Hub"),
@@ -104,6 +120,7 @@ class _RetailerHomePageState extends State<RetailerHomePage> {
             );
           },
         ),
+      ),
       ),
     );
   }

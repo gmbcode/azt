@@ -1,14 +1,16 @@
 // lib/pages/retailer_customer_orders_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../cubits/retailer_cubit.dart';
+import '../../cubits/retailer_states.dart';
 import '../../retailer_models/retailer_order_model.dart';
 import '../../retailer_models/retailer_payment_status_model.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
 import '../../retailer_widgets/retailer_reusable_order_table.dart';
 import '../../retailer_widgets/retailer_reusable_search_bar.dart';
 import '../../retailer_widgets/retailer_status_filter_chips.dart';
-
-// We need this for the dummy data
 
 class RetailerCustomerOrdersPage extends StatefulWidget {
   const RetailerCustomerOrdersPage({super.key});
@@ -37,51 +39,7 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
   }
 
   void _fetchOrders() {
-    // --- HARDCODED DATA ADDED ---
-    // These are orders from the retailer's *own* customers
-    final List<OrderModel> dummyOrders = [
-      OrderModel(
-        id: 'ord-cust-001',
-        deliveryaddress: '123 Customer Lane',
-        items: [],
-        orderbyid: 'customer_1', // This is the 'Customer ID'
-        orderfromid: 'my_retailer_id', // This is me
-        ordertime: '2025-11-15T10:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'pending',
-        total: 55.0,
-        trackinghistory: [],
-      ),
-      OrderModel(
-        id: 'ord-cust-002',
-        deliveryaddress: '456 Client Ave',
-        items: [],
-        orderbyid: 'customer_2',
-        orderfromid: 'my_retailer_id',
-        ordertime: '2025-11-14T16:20:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'confirmed',
-        total: 12.50,
-        trackinghistory: [],
-      ),
-      OrderModel(
-        id: 'ord-cust-003',
-        deliveryaddress: '789 Shopper St',
-        items: [],
-        orderbyid: 'customer_3',
-        orderfromid: 'my_retailer_id',
-        ordertime: '2025-11-13T08:05:00Z',
-        paymentstatus: PaymentStatusModel(method: 'offline', status: 'pending'),
-        status: 'delivered',
-        total: 89.99,
-        trackinghistory: [],
-      ),
-    ];
-    
-    setState(() {
-      _allOrders = dummyOrders;
-      _filteredOrders = _allOrders;
-    });
+    context.read<RetailerCubit>().fetchCustomerOrders();
   }
 
   void _filterAndSearch() {
@@ -152,9 +110,36 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: Row(
+    return BlocListener<RetailerCubit, RetailerState>(
+      listener: (context, state) {
+        if (state is RetailerCustomerOrdersLoaded) {
+          setState(() {
+            _allOrders = state.orders.map((order) => OrderModel(
+              id: order.id,
+              deliveryaddress: order.deliveryAddress,
+              items: [],
+              orderbyid: order.orderById,
+              orderfromid: order.orderFromId,
+              ordertime: order.orderTime,
+              paymentstatus: PaymentStatusModel(
+                method: order.paymentStatus.method,
+                status: order.paymentStatus.status,
+              ),
+              status: order.status,
+              total: order.total,
+              trackinghistory: [],
+            )).toList();
+            _filterAndSearch();
+          });
+        } else if (state is RetailerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[200],
+        body: Row(
         children: [
           // --- Sidebar ---
           const RetailerMainSidebar(selectedPage: 'customer_orders'),
@@ -272,6 +257,7 @@ class _RetailerCustomerOrdersPageState extends State<RetailerCustomerOrdersPage>
             ),
           ),
         ],
+      ),
       ),
     );
   }

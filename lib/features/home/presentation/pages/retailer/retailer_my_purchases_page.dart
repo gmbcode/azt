@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../cubits/retailer_cubit.dart';
+import '../../cubits/retailer_states.dart';
 import '../../retailer_models/retailer_order_model.dart';
 import '../../retailer_models/retailer_payment_status_model.dart';
 import '../../retailer_widgets/retailer_main_sidebar.dart';
@@ -34,35 +37,7 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
   }
 
   void _fetchPurchases() {
-    // --- HARDCODED DATA ADDED ---
-    final List<OrderModel> dummyPurchases = [
-      OrderModel(
-        id: 'WHO-1001', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_1',
-        ordertime: '2025-11-20T09:30:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'delivered', total: 450.0, trackinghistory: [],
-      ),
-      OrderModel(
-        id: 'WHO-1002', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_2',
-        ordertime: '2025-11-22T14:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'shipped', total: 120.0, trackinghistory: [],
-      ),
-       OrderModel(
-        id: 'WHO-1003', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_1',
-        ordertime: '2025-11-25T11:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'offline', status: 'pending'),
-        status: 'pending', total: 800.0, trackinghistory: [],
-      ),
-    ];
-    
-    setState(() {
-      _allPurchases = dummyPurchases;
-      _filteredPurchases = _allPurchases;
-    });
+    context.read<RetailerCubit>().fetchPurchases();
   }
 
   void _filterAndSearch() {
@@ -108,9 +83,36 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: Row(
+    return BlocListener<RetailerCubit, RetailerState>(
+      listener: (context, state) {
+        if (state is RetailerPurchasesLoaded) {
+          setState(() {
+            _allPurchases = state.purchases.map((order) => OrderModel(
+              id: order.id,
+              deliveryaddress: order.deliveryAddress,
+              items: [],
+              orderbyid: order.orderById,
+              orderfromid: order.orderFromId,
+              ordertime: order.orderTime,
+              paymentstatus: PaymentStatusModel(
+                method: order.paymentStatus.method,
+                status: order.paymentStatus.status,
+              ),
+              status: order.status,
+              total: order.total,
+              trackinghistory: [],
+            )).toList();
+            _filterAndSearch();
+          });
+        } else if (state is RetailerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[200],
+        body: Row(
         children: [
           // --- Sidebar ---
           const RetailerMainSidebar(selectedPage: 'my_purchases'),
@@ -186,6 +188,7 @@ class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
