@@ -1,0 +1,65 @@
+{
+  "listings_wholesaler": {
+    "listed_product_uuid":{
+        "available_listed_qty" : 1
+    },
+    "listed_product1_uuid":{
+        "available_listed_qty" : 1
+    }          
+  },
+  "listings_retailer": {
+    "listed_product_uuid":{
+        "available_listed_qty" : 1
+    },
+    "listed_product1_uuid":{
+        "available_listed_qty" : 1
+    }      
+  },
+  "wholesalers": {
+    "auth_uid_wholesaler_01": {
+      "inventory": {
+        "prod_001": {
+          "stock": 500,
+          "price": 85,
+          "moq": 12
+        }
+      }
+    }
+  },
+  "retailers": {
+    "uid_retailer": {
+      "inventory": {
+        "prod_001": {
+          "stock": 45,
+          "costPrice": 85,
+          "sellingPrice": 110,
+          "isLive": true
+        }
+      },
+      "cart": {
+        "auth_uid_wholesaler_01": {
+          "items": {
+            "product_uid": {
+              "qty": 50,
+              "unitPrice": 30
+            }
+          }
+        }
+      }
+    }
+  },
+  "customers": {
+    "customer_uid": {
+      "cart": {
+        "retailer_uid": {
+          "items": {
+            "product_uid": {
+              "qty": 2,
+              "priceSnapshot": 110
+            }
+          }
+        }
+      }
+    }
+  }
+}

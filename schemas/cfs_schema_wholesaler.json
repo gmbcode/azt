@@ -1,0 +1,10 @@
+{
+  "wholesalers": {
+    "auth_uid_wholesaler_01": {
+      "uid": "auth_uid_wholesaler_01",
+      "businessName": "Hyderabad Wholesale Depot",
+      "address": "Plot 22, Industrial Area",
+      "pincode": "110017"
+    }
+  }
+}

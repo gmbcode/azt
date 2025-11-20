@@ -1,0 +1,36 @@
+{
+  "orders_retailer": {
+    "order_uuid_xyz": {
+      "orderDate": "2025-11-20T10:00:00Z",
+      "status": "delivered", 
+      "retailer_uid": "7W2Gv55...",   
+      "wholesaler_seller_uid": "puQuhb...",    
+      "totalAmount": 220,
+      "items": [
+        {
+          "productId": "prod_001",
+          "name": "Thums Up 2L",   
+          "qty": 2,
+          "price": 110
+        }
+      ]
+    }
+  },
+  "orders_customer": {
+    "order_uuid_xyz": {
+      "orderDate": "2025-11-20T10:00:00Z",
+      "status": "delivered", 
+      "customer_uid": "7W2Gv55...",   
+      "retailer_seller_uid": "puQuhb...",    
+      "totalAmount": 220,
+      "items": [
+        {
+          "productId": "prod_001",
+          "name": "Thums Up 2L",   
+          "qty": 2,
+          "price": 110
+        }
+      ]
+    }
+  }
+}
