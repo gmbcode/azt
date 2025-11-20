@@ -2,24 +2,23 @@
 
 import 'package:flutter/material.dart';
 
-class OrderFilterChips extends StatefulWidget {
-  const OrderFilterChips({super.key});
+class OrderFilterChips extends StatelessWidget {
+  final String selectedFilter;
+  final ValueChanged<String> onFilterSelected;
 
-  @override
-  State<OrderFilterChips> createState() => _OrderFilterChipsState();
-}
-
-class _OrderFilterChipsState extends State<OrderFilterChips> {
-  // This variable will hold the currently selected filter
-  String _selectedFilter = 'All';
+  const OrderFilterChips({
+    super.key,
+    required this.selectedFilter,
+    required this.onFilterSelected,
+  });
 
   // List of all available filters
-  final List<String> _filters = [
+  final List<String> _filters = const [ 
     'All',
     'Pending',
-    'Processing',
+    'Processing', // JSON status: confirmed
     'Shipped',
-    'Completed',
+    'Completed', // JSON status: delivered
     'Cancelled'
   ];
 
@@ -27,18 +26,16 @@ class _OrderFilterChipsState extends State<OrderFilterChips> {
   Widget build(BuildContext context) {
     return Row(
       children: _filters.map((filter) {
-        final bool isSelected = _selectedFilter == filter;
-        return Padding(
+        final bool isSelected = selectedFilter == filter;
+        
+        return Padding( // FIX: Removed 'const' here
           padding: const EdgeInsets.only(right: 8.0),
           child: FilterChip(
             label: Text(filter),
             selected: isSelected,
             onSelected: (bool selected) {
               if (selected) {
-                setState(() {
-                  _selectedFilter = filter;
-                });
-                // TODO: Add logic here to actually filter your list of orders
+                onFilterSelected(filter); 
               }
             },
             backgroundColor: isSelected ? Colors.orange.withOpacity(0.1) : Colors.grey[100],

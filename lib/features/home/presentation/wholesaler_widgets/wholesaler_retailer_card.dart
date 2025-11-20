@@ -2,15 +2,27 @@
 
 import 'package:flutter/material.dart';
 
+import '../wholesaler_models/retailer_model.dart';
+
+
 class RetailerCard extends StatelessWidget {
-  final String businessName;
-  final String address;
+  final RetailerModel retailer; // Now takes a full model object
 
   const RetailerCard({
     super.key,
-    required this.businessName,
-    required this.address,
+    required this.retailer,
   });
+
+  void _viewProfile(BuildContext context) {
+    // In a real app, this would navigate to a detailed profile page.
+    // We'll just show a simple snackbar to demonstrate it works.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Viewing profile for ${retailer.businessName} (ID: ${retailer.id})'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,21 +48,21 @@ class RetailerCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Business Name (from your JSON)
+          // Business Name
           Text(
-            businessName,
+            retailer.businessName,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
             maxLines: 1,
-            overflow: TextOverflow.ellipsis, //it gives ... if text overflows
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
 
-          // Address (from your JSON)
+          // Address
           Text(
-            address,
+            retailer.address,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -66,9 +78,7 @@ class RetailerCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Handle navigation to retailer's profile
-              },
+              onPressed: () => _viewProfile(context), // **View Profile Logic Here**
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,

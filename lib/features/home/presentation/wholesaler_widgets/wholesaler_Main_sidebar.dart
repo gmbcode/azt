@@ -1,14 +1,12 @@
+import 'package:azt/features/home/presentation/wholesaler_widgets/wholesaler_sidebar_item.dart';
 import 'package:flutter/material.dart';
 
-// Import your custom sidebar item
-import '../pages/wholesalers/wholesaler_dashboardpage.dart';
-import '../pages/wholesalers/wholesaler_inventorypage.dart';
-import '../pages/wholesalers/wholesaler_orders.dart';
-import '../pages/wholesalers/wholesaler_retailers.dart';
-import 'wholesaler_sidebar_item.dart';
+import '../pages/wholesaler/wholesaler_dashboardpage.dart';
+import '../pages/wholesaler/wholesaler_inventorypage.dart';
+import '../pages/wholesaler/wholesaler_orders.dart';
+import '../pages/wholesaler/wholesaler_retailers.dart';
 
-// Import the pages for navigation
-// Adjust these paths if your pages are in a different folder!
+
 
 class MainSidebar extends StatelessWidget {
   final String selectedPage;
@@ -52,7 +50,7 @@ class MainSidebar extends StatelessWidget {
             isSelected: selectedPage == 'dashboard',
             onTap: selectedPage == 'dashboard'
                 ? null // Disable tap if already selected
-                : () => navigateTo(const WholesalerDashboardPage()),
+                : () => navigateTo(const wholeSalerDashboardpage()),
           ),
 
           // Inventory Item

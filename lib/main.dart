@@ -12,14 +12,15 @@ import 'package:azt/features/auth/presentation/pages/login_page.dart';
 import 'package:azt/features/auth/presentation/pages/register_page.dart';
 import 'package:azt/features/home/presentation/pages/empty_home_page.dart';
 import 'package:azt/features/home/presentation/pages/retailer/retailer_home_page.dart';
-import 'package:azt/features/home/presentation/pages/wholesalers/wholesaler_home_page.dart';
+
 import 'package:azt/theme/dark_mode.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:azt/firebase_options.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'features/home/presentation/pages/retailer/retailer_dashboard_page.dart' show RetailerDashboardPage;
+import 'features/home/presentation/pages/retailer/retailer_dashboard_page.dart';
+import 'features/home/presentation/pages/wholesaler/wholesaler_homepage.dart';
 void main() async {
   //firebase setup
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,9 +66,8 @@ class MyApp extends StatelessWidget {
             if(state is Authenticated){
               final userRole = state.user.roleAllot;
               print("DEBUG: Authenticated state - role: $userRole"); // ADD THIS
-              // TODO: create separate pages for each role, for now redirect to home
               if (userRole == 'customer') {
-                return const HomePage(); 
+                return const HomePage();
               } else if (userRole == 'retailer') {
                 return const  RetailerHomePage();
               } else if (userRole == 'wholesaler') {

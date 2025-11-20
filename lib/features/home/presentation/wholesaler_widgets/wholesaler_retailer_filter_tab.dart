@@ -2,24 +2,21 @@
 
 import 'package:flutter/material.dart';
 
-class RetailerFilterTabs extends StatefulWidget {
-  const RetailerFilterTabs({super.key});
+class RetailerFilterTabs extends StatelessWidget {
+  final String selectedTab; // The currently active tab
+  final ValueChanged<String> onTabSelected; // Callback to update parent state
 
-  @override
-  State<RetailerFilterTabs> createState() => _RetailerFilterTabsState();
-}
-
-class _RetailerFilterTabsState extends State<RetailerFilterTabs> {
-  String _selectedTab = 'All Retailers';
+  const RetailerFilterTabs({
+    super.key,
+    required this.selectedTab,
+    required this.onTabSelected,
+  });
 
   Widget _buildTab(String title) {
-    final bool isSelected = _selectedTab == title;
+    final bool isSelected = selectedTab == title;
     return InkWell(
       onTap: () {
-        setState(() {
-          _selectedTab = title;
-          // TODO: Add logic to filter retailers based on the selected tab
-        });
+        onTabSelected(title); // **Update parent state on tap**
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
