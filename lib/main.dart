@@ -10,7 +10,8 @@ import 'package:azt/features/auth/presentation/pages/verification_screen.dart';
 import 'package:azt/features/auth/presentation/pages/login_page.dart';
 // ignore: unused_import
 import 'package:azt/features/auth/presentation/pages/register_page.dart';
-import 'package:azt/features/home/presentation/pages/empty_home_page.dart';
+import 'package:azt/features/home/presentation/pages/customer/customer_homepage.dart';
+import 'package:azt/features/home/presentation/pages/home_page.dart';
 import 'package:azt/features/home/presentation/pages/retailer/retailer_home_page.dart';
 
 import 'package:azt/theme/dark_mode.dart';
@@ -67,7 +68,7 @@ class MyApp extends StatelessWidget {
               final userRole = state.user.roleAllot;
               print("DEBUG: Authenticated state - role: $userRole"); // ADD THIS
               if (userRole == 'customer') {
-                return const HomePage();
+                return const CustomerHomePage();                
               } else if (userRole == 'retailer') {
                 return const  RetailerHomePage();
               } else if (userRole == 'wholesaler') {
