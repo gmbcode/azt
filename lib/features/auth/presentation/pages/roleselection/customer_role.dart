@@ -1,3 +1,5 @@
+// lib/features/auth/presentation/pages/roleselection/customer_role.dart
+
 import 'package:azt/features/auth/presentation/components/my_button.dart';
 import 'package:azt/features/auth/presentation/components/my_textfield.dart';
 import 'package:azt/features/auth/presentation/cubits/auth_cubit.dart';
@@ -31,18 +33,19 @@ class _customerRoleState extends State<customerRole> {
     if(address.isEmpty || pincode.isEmpty){
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Please enter all Fields!")));
+      return; // Add return to stop execution
     }
 
     if (!isPincodeValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Pincode must be exactly 6 digits!!")),
+        const SnackBar(content: Text("Pincode must be exactly 6 digits!!")),
       );
       return;
     }
 
     if(address.length>200){
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Address is too Long!")),
+        const SnackBar(content: Text("Address is too Long!")),
       );
       return;
     }
@@ -52,11 +55,16 @@ class _customerRoleState extends State<customerRole> {
     try{
       final authCubit = context.read<AuthCubit>();
       await authCubit.saveRoleSelection('customer', address, pincode);
+      
       if(mounted){
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Customer profile created successfully!")),
         );
         setState(() => _isLoading = false);
+        
+        //Navigate to home by popping it if profile creation sucessful
+        Navigator.of(context).pop(); 
+        
       }
     } catch(e){
       if (mounted) {  
@@ -80,10 +88,8 @@ class _customerRoleState extends State<customerRole> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       //body
       body: Center(
-        
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 100.0),
           child: Column(
@@ -128,12 +134,8 @@ class _customerRoleState extends State<customerRole> {
                   ),
                   GestureDetector(
                     onTap: (){
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                        builder: (context) => const RoleSelectionpage(),
-                        ),
-                      );
+                      // Use pop instead of pushReplacement to correctly go back
+                      Navigator.pop(context);
                     },
                     child: Text(
                       " Click Here to Go Back",

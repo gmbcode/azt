@@ -65,6 +65,7 @@ class _retailerRoleState extends State<retailerRole> {
           const SnackBar(content: Text("Retailer profile created successfully!")),
         );
         setState(() => _isLoading = false);
+        Navigator.of(context).pop(); 
       }
     } catch (e) {
       if (mounted) {
