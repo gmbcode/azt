@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// Import the Auth Cubit
+// Architecture
+import '../../../../customer/data/repos/customer_repo.dart';
+import '../../../../customer/presentation/cubits/customer_cubit.dart';
 import '../../../../auth/presentation/cubits/auth_cubit.dart';
-import '../../customer_widgets/customer_sfproductcards.dart';
-import '../../customer_widgets/customer_sfsidemenu.dart';
-import 'customer_sfcart.dart';
-import 'customer_sfcheckout.dart';
-import 'customer_sfdashboard.dart';
-import 'customer_sfrecentorders.dart';
-import 'customer_sfsearch.dart';
+import '../../../../auth/presentation/cubits/auth_states.dart';
 
+// Widgets
+import '../../customer_widgets/customer_drawer.dart';
 
+// Pages
+import '../../customer_widgets/customer_theme.dart';
+import 'customer_dashboard_page.dart';
+import 'customer_browse_products_page.dart';
+import 'customer_cart_page.dart';
+import 'customer_orders_page.dart';
+import 'customer_profile_page.dart';
 
 class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
@@ -21,126 +26,150 @@ class CustomerHomePage extends StatefulWidget {
 }
 
 class _CustomerHomePageState extends State<CustomerHomePage> {
-  int _selectedIndex = 0;
+  String _currentPage = 'dashboard';
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // This list holds the products in our cart
-  final List<Product> _cart = [];
-
-  // This list holds the confirmed orders (List of Lists)
-  final List<List<Product>> _recentOrders = [];
-
-  // Callback to add a product to the cart
-  void _addToCart(Product product) {
-    setState(() {
-      _cart.add(product);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} added to cart!'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-  }
-
-  // Callback to remove a product from the cart
-  void _removeFromCart(Product product) {
-    setState(() {
-      _cart.remove(product);
-    });
-  }
-
-  // Logic to handle successful payment
-  void _handlePaymentSuccess() {
-    setState(() {
-      if (_cart.isNotEmpty) {
-        // Create a copy of current cart and add to orders
-        _recentOrders.insert(0, List.from(_cart));
-        // Clear the cart
-        _cart.clear();
-      }
-    });
-  }
-
-  void _onItemTapped(int index) {
-    // Logout is index 5 in your side menu
-    if (index == 5) {
-      _confirmLogout();
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
+  void _navigate(String page) {
+    if (page == 'logout') {
+      context.read<AuthCubit>().logout();
+      return;
     }
-  }
-
-  void _confirmLogout() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              // Call the AuthCubit to perform the actual logout
-              context.read<AuthCubit>().logout();
-            },
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
+    setState(() => _currentPage = page);
+    // Close drawer on mobile after selection
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Define the pages
-    final List<Widget> pages = <Widget>[
-      DashboardPage(
-        onNavigate: _onItemTapped, // Pass the navigation callback
-      ),
-      SearchPage(
-        onAddToCart: _addToCart,
-        onRemoveFromCart: _removeFromCart,
-        cart: _cart,
-      ),
-      MyCartPage(
-        cart: _cart,
-        onRemoveFromCart: _removeFromCart,
-        onItemTapped: _onItemTapped,
-      ),
-      CheckoutPage(
-        cart: _cart,
-        onPaymentSuccess: _handlePaymentSuccess,
-      ),
-      RecentOrdersPage(
-        orders: _recentOrders,
-      ),
-    ];
+    // Get UID
+    String uid = '';
+    final authState = context.read<AuthCubit>().state;
+    if (authState is Authenticated) uid = authState.user.uid;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SideMenu(
-              selectedIndex: _selectedIndex,
-              onItemTapped: _onItemTapped,
-            ),
-            Expanded(
-              // IndexedStack preserves state when switching tabs
-              child: IndexedStack(
-                index: _selectedIndex,
-                children: pages,
-              ),
-            ),
-          ],
+    return RepositoryProvider(
+      create: (context) => CustomerRepo(),
+      child: BlocProvider(
+        create: (context) => CustomerCubit(context.read<CustomerRepo>(), uid),
+        child: Theme(
+          data: CustomerTheme.theme,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Responsive Logic
+              final bool isDesktop = constraints.maxWidth > 800;
+          
+              return Scaffold(
+                key: _scaffoldKey,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                
+                // Mobile Drawer
+                drawer: !isDesktop 
+                  ? CustomerDrawer(currentPage: _currentPage, onPageChanged: _navigate)
+                  : null,
+                  
+                appBar: !isDesktop
+                  ? AppBar(
+                      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                      title: Text(_getPageTitle(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      elevation: 0,
+                      leading: IconButton(
+                        icon: const Icon(Icons.menu),
+                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      ),
+                      actions: [
+                        _CartBadgeIcon(onTap: () => setState(() => _currentPage = 'cart'))
+                      ],
+                    )
+                  : null, // No AppBar on Desktop, Sidebar handles it
+          
+                body: Row(
+                  children: [
+                    // Desktop Sidebar
+                    if (isDesktop)
+                      CustomerDrawer(currentPage: _currentPage, onPageChanged: _navigate),
+                    
+                    // Main Content
+                    Expanded(
+                      child: Column(
+                        children: [
+                          if (isDesktop)
+                            Container(
+                              height: 80,
+                              padding: const EdgeInsets.symmetric(horizontal: 30),
+                              alignment: Alignment.centerRight,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(_getPageTitle(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                                  _CartBadgeIcon(onTap: () => setState(() => _currentPage = 'cart')),
+                                ],
+                              ),
+                            ),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              child: _getPageWidget(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
+    );
+  }
+
+  String _getPageTitle() {
+    switch (_currentPage) {
+      case 'browse': return 'Browse Products';
+      case 'cart': return 'Shopping Cart';
+      case 'orders': return 'Order History';
+      case 'profile': return 'My Profile';
+      case 'dashboard': return 'Dashboard';
+      default: return '';
+    }
+  }
+
+  Widget _getPageWidget() {
+    // Key is important for AnimatedSwitcher
+    switch (_currentPage) {
+      case 'browse': return const CustomerBrowseProductsPage(key: ValueKey('browse'));
+      case 'cart': return const CustomerCartPage(key: ValueKey('cart'));
+      case 'orders': return const CustomerOrdersPage(key: ValueKey('orders'));
+      case 'profile': return const CustomerProfilePage(key: ValueKey('profile'));
+      case 'dashboard': 
+      default: return CustomerDashboardPage(onNavigate: _navigate, key: const ValueKey('dashboard'));
+    }
+  }
+}
+
+class _CartBadgeIcon extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CartBadgeIcon({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<CustomerCubit, CustomerState>(
+      builder: (context, state) {
+        int count = 0;
+        if (state is CustomerLoaded) {
+          count = state.cart.length;
+        }
+        return IconButton(
+          onPressed: onTap,
+          icon: Badge(
+            label: Text(count.toString()),
+            isLabelVisible: count > 0,
+            child: const Icon(Icons.shopping_cart_outlined, size: 28),
+          ),
+        );
+      },
     );
   }
 }
