@@ -21,26 +21,22 @@ class _CustomerBrowseProductsPageState extends State<CustomerBrowseProductsPage>
         if (state is CustomerLoading) return const Center(child: CircularProgressIndicator());
         
         if (state is CustomerLoaded) {
-          // Categories
           final categories = ["All", ...state.products.map((e) => e.category).toSet().toList()];
           
-          // Filter Logic
           final filtered = state.products.where((p) {
             final matchesSearch = p.name.toLowerCase().contains(_search.toLowerCase());
             final matchesCategory = _category == "All" || p.category == _category;
             return matchesSearch && matchesCategory;
           }).toList();
 
+          // FIX: Wrapped in Column + Expanded logic to ensure scrolling works
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Search Header (Like Reference Image 2)
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Search Bar
                     TextField(
                       onChanged: (v) => setState(() => _search = v),
                       style: const TextStyle(color: Colors.white),
@@ -51,13 +47,10 @@ class _CustomerBrowseProductsPageState extends State<CustomerBrowseProductsPage>
                           ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _search = '')) 
                           : null,
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.tertiary, // Using the theme color we set
+                        fillColor: Theme.of(context).colorScheme.tertiary,
                       ),
                     ),
-                    
                     const SizedBox(height: 16),
-                    
-                    // Filter Chips
                     SizedBox(
                       height: 36,
                       child: ListView.builder(
@@ -85,32 +78,26 @@ class _CustomerBrowseProductsPageState extends State<CustomerBrowseProductsPage>
                         },
                       ),
                     ),
-                    
                     const SizedBox(height: 24),
-                    
-                    // Results Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Search Results", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                        Text("${filtered.length} found", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const Text("Search Results", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text("${filtered.length} found", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // 2. Product Grid
               Expanded(
                 child: filtered.isEmpty 
                 ? Center(child: Text("No products found.", style: TextStyle(color: Colors.grey.shade700)))
                 : GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 220, // Controls width responsiveness
-                      childAspectRatio: 0.62, // Controls height (making them tall like reference)
+                      maxCrossAxisExtent: 220, 
+                      childAspectRatio: 0.62, 
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
                     ),
@@ -121,9 +108,6 @@ class _CustomerBrowseProductsPageState extends State<CustomerBrowseProductsPage>
                         product: product,
                         onAdd: () {
                           context.read<CustomerCubit>().addToCart(product);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Added to cart"), duration: Duration(milliseconds: 500))
-                          );
                         },
                       );
                     },

@@ -30,13 +30,9 @@ class CustomerCubit extends Cubit<CustomerState> {
 
   void _init() {
     emit(CustomerLoading());
-    
-    // Listen to Products
     _repo.getProductsStream().listen((products) {
       _emitState(products: products);
     });
-
-    // Listen to Orders
     _repo.getMyOrdersStream(_uid).listen((orders) {
       _emitState(orders: orders);
     });
@@ -56,25 +52,30 @@ class CustomerCubit extends Cubit<CustomerState> {
     emit(CustomerLoaded(products: p, cart: c, orders: o));
   }
 
-  // Cart Logic (Local Memory for now)
   void addToCart(CustomerProductModel product) {
     if (state is CustomerLoaded) {
       final currentCart = List<CustomerCartItemModel>.from((state as CustomerLoaded).cart);
       final index = currentCart.indexWhere((item) => item.productId == product.id);
 
       if (index >= 0) {
-        currentCart[index] = currentCart[index].copyWith(qty: currentCart[index].qty + 1);
+        // Check Stock
+        if (currentCart[index].qty < product.availableQty) {
+          currentCart[index] = currentCart[index].copyWith(qty: currentCart[index].qty + 1);
+          _emitState(cart: currentCart);
+        }
       } else {
-        currentCart.add(CustomerCartItemModel(
-          productId: product.id,
-          retailerId: product.retailerId,
-          name: product.name,
-          price: product.price,
-          imageUrl: product.imageUrl,
-          qty: 1,
-        ));
+        if (product.availableQty > 0) {
+          currentCart.add(CustomerCartItemModel(
+            productId: product.id,
+            retailerId: product.retailerId,
+            name: product.name,
+            price: product.price,
+            imageUrl: product.imageUrl,
+            qty: 1,
+          ));
+          _emitState(cart: currentCart);
+        }
       }
-      _emitState(cart: currentCart);
     }
   }
 
@@ -103,13 +104,23 @@ class CustomerCubit extends Cubit<CustomerState> {
 
   void incrementCartItem(String productId) {
     if (state is CustomerLoaded) {
-      final currentCart = List<CustomerCartItemModel>.from((state as CustomerLoaded).cart);
+      final loadedState = state as CustomerLoaded;
+      final currentCart = List<CustomerCartItemModel>.from(loadedState.cart);
       final index = currentCart.indexWhere((item) => item.productId == productId);
 
+      // Look up the product to check stock
+      // We use firstWhere with a safe fallback to prevent crashes if product isn't found
+      final product = loadedState.products.firstWhere(
+        (p) => p.id == productId, 
+        orElse: () => CustomerProductModel(id: '', retailerId: '', inventoryItemId: '', name: '', price: 0, imageUrl: '', category: '', availableQty: 0)
+      );
+
       if (index >= 0) {
-        // Create a copy with quantity + 1
-        currentCart[index] = currentCart[index].copyWith(qty: currentCart[index].qty + 1);
-        _emitState(cart: currentCart);
+        // Limit Check: Cannot add more than available stock
+        if (currentCart[index].qty < product.availableQty) {
+          currentCart[index] = currentCart[index].copyWith(qty: currentCart[index].qty + 1);
+          _emitState(cart: currentCart);
+        }
       }
     }
   }
@@ -120,7 +131,6 @@ class CustomerCubit extends Cubit<CustomerState> {
     if (cart.isEmpty) return;
 
     try {
-      // Group by Retailer because orders must be separated per retailer
       Map<String, List<Map<String, dynamic>>> ordersByRetailer = {};
       Map<String, double> totalsByRetailer = {};
 
@@ -143,11 +153,9 @@ class CustomerCubit extends Cubit<CustomerState> {
         );
       }
       
-      // Clear cart
       _emitState(cart: []);
     } catch (e) {
       emit(CustomerError("Checkout Failed: $e"));
-      // Revert to loaded to allow retry
       _init(); 
     }
   }

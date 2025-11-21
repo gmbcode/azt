@@ -108,7 +108,8 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    Text('\$${product.price}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                    // CURRENCY FIX
+                                    Text('₹${product.price}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 8),
                                     SizedBox(
                                       width: double.infinity,

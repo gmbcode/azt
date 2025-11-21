@@ -11,7 +11,6 @@ class CustomerDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get User Name
     String username = "Shopper";
     final authState = context.read<AuthCubit>().state;
     if (authState is Authenticated) username = authState.user.name;
@@ -20,14 +19,10 @@ class CustomerDashboardPage extends StatelessWidget {
       builder: (context, state) {
         if (state is CustomerLoading) return const Center(child: CircularProgressIndicator());
         
-        // Data Preparation
         final products = (state is CustomerLoaded) ? state.products : [];
-        // Get unique categories for the "Popular Brand/Category" circles
         final categories = (state is CustomerLoaded) 
             ? state.products.map((e) => e.category).toSet().toList() 
             : <String>[];
-        
-        // Featured Product (Just taking the first one as "Sneaker of the Week")
         final featuredProduct = products.isNotEmpty ? products.first : null;
 
         return SingleChildScrollView(
@@ -35,19 +30,17 @@ class CustomerDashboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Header
               Text("Good day for shopping,", style: TextStyle(color: Colors.grey[500], fontSize: 14)),
               const SizedBox(height: 4),
               Text(username, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              
               const SizedBox(height: 24),
 
-              // 2. "Wallet" / Status Card (Like Reference Image 1)
+              // 1. Cart Total
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A), // Dark card
+                  color: const Color(0xFF1A1A1A),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white.withOpacity(0.05)),
                 ),
@@ -65,12 +58,11 @@ class CustomerDashboardPage extends StatelessWidget {
                             if (state is CustomerLoaded) {
                               total = state.cart.fold(0, (sum, item) => sum + (item.price * item.qty));
                             }
-                            return Text("\$${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900));
+                            return Text("₹${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900));
                           },
                         ),
                       ],
                     ),
-                    // "Tuks" logo equivalent - Cart Button
                     ElevatedButton(
                       onPressed: () => onNavigate('cart'),
                       style: ElevatedButton.styleFrom(
@@ -87,7 +79,7 @@ class CustomerDashboardPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // 3. Popular Categories (Horizontal Circles)
+              // 2. Categories
               const Text("Popular Categories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               SizedBox(
@@ -106,14 +98,13 @@ class CustomerDashboardPage extends StatelessWidget {
                             Container(
                               width: 60, height: 60,
                               decoration: BoxDecoration(
-                                color: Colors.white, // White circle like reference
+                                color: Colors.white, 
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.grey.shade200),
                               ),
-                              // Using first letter as icon placeholder
                               alignment: Alignment.center,
                               child: Text(
-                                cat[0].toUpperCase(), 
+                                cat.isNotEmpty ? cat[0].toUpperCase() : "?", 
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.black)
                               ),
                             ),
@@ -128,13 +119,13 @@ class CustomerDashboardPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // 4. Hero Banner ("Sneakers of the Week")
+              // 3. Hero Banner
               if (featuredProduct != null)
                 Container(
                   width: double.infinity,
                   height: 220,
                   decoration: BoxDecoration(
-                    color: Colors.white, // White card for hero image like reference
+                    color: Colors.white, 
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: Stack(
@@ -146,10 +137,9 @@ class CustomerDashboardPage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Brand Logo placeholder
                               Icon(Icons.star, color: Colors.grey[300], size: 30),
                               const SizedBox(height: 20),
-                              Text(
+                              const Text(
                                 "PICK OF\nTHE WEEK",
                                 style: TextStyle(
                                   color: Colors.black,
@@ -174,7 +164,6 @@ class CustomerDashboardPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      // Hero Image (Right side)
                       Positioned(
                         right: -20, top: 10, bottom: 10,
                         width: 200,
@@ -190,7 +179,7 @@ class CustomerDashboardPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // 5. Grid (New Arrivals)
+              // 4. Grid (New Arrivals)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -201,16 +190,17 @@ class CustomerDashboardPage extends StatelessWidget {
                   )
                 ],
               ),
+              // Fixed: Use Physics to prevent nested scrolling issues, or simple shrinkwrap
               GridView.builder(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(), // Important to prevent scroll conflict
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 200, // Adaptive width
-                  childAspectRatio: 0.65,  // Taller cards
+                  maxCrossAxisExtent: 200, 
+                  childAspectRatio: 0.65,  
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                 ),
-                itemCount: products.take(4).length, // Show only 4
+                itemCount: products.take(4).length, 
                 itemBuilder: (context, index) {
                   final product = products[index];
                   return CustomerProductCard(

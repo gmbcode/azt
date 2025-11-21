@@ -23,7 +23,6 @@ class ListingsPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                      Text("Active Listings", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
-                     // Statistics Chip
                      Chip(
                        label: Text("${listings.length} Active"),
                        backgroundColor: Theme.of(context).colorScheme.secondary,
@@ -53,7 +52,7 @@ class ListingsPage extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final item = listings[index];
                         return Card(
-                          elevation: 0, // Flat style
+                          elevation: 0, 
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(color: Colors.grey.shade200)
@@ -75,7 +74,8 @@ class ListingsPage extends StatelessWidget {
                                 children: [
                                   _InfoBadge(icon: Icons.inventory_2_outlined, text: "${item.availableQty} units"),
                                   const SizedBox(width: 15),
-                                  _InfoBadge(icon: Icons.attach_money, text: item.price.toStringAsFixed(2)),
+                                  // CURRENCY FIX
+                                  _InfoBadge(icon: Icons.currency_rupee, text: item.price.toStringAsFixed(2)),
                                 ],
                               ),
                             ),

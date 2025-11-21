@@ -54,7 +54,8 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
                           child: Image.network(item.imageUrl, width: 60, height: 60, fit: BoxFit.cover, errorBuilder: (_,__,___)=> const Icon(Icons.image)),
                         ),
                         title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("\$${item.price} x ${item.qty}", style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+                        // CURRENCY FIX
+                        subtitle: Text("₹${item.price} x ${item.qty}", style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -65,7 +66,6 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
                             Text("${item.qty}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                             IconButton(
                               icon: const Icon(Icons.add_circle_outline),
-                              // We need logic to check stock limit, but for now just increment
                               onPressed: () {
                                 context.read<CustomerCubit>().incrementCartItem(item.productId);
                               }, 
@@ -78,7 +78,6 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
                 ),
               ),
               
-              // Checkout Section
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -102,7 +101,8 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text("Total Amount", style: TextStyle(fontSize: 16)),
-                        Text("\$${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                        // CURRENCY FIX
+                        Text("₹${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 20),

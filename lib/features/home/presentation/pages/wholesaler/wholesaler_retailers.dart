@@ -26,17 +26,12 @@ class _RetailersPageState extends State<RetailersPage> {
                    retailer.address.toLowerCase().contains(term);
           }).toList();
 
-          // Theme Colors
-          final surfaceColor = Theme.of(context).colorScheme.surface;
-          final primaryColor = Theme.of(context).primaryColor;
-          final secondaryColor = Theme.of(context).colorScheme.secondary;
-
           return Padding(
             padding: const EdgeInsets.all(24),
             child: Container(
               padding: const EdgeInsets.all(30),
               decoration: BoxDecoration(
-                color: surfaceColor, // Dynamic Surface
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -45,7 +40,7 @@ class _RetailersPageState extends State<RetailersPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("Retailers", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor)),
+                      Text("Retailers", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
                       RetailerSearchBar(onSearch: (term) => setState(() => _searchTerm = term)),
                     ],
                   ),
@@ -58,53 +53,39 @@ class _RetailersPageState extends State<RetailersPage> {
                         maxCrossAxisExtent: 300,
                         mainAxisSpacing: 20,
                         crossAxisSpacing: 20,
-                        childAspectRatio: 1.0,
+                        childAspectRatio: 1.2, 
                       ),
                       itemCount: filteredRetailers.length,
                       itemBuilder: (context, index) {
                         final retailer = filteredRetailers[index];
                         return Card(
-                          // Card color is handled by Theme.cardTheme automatically
                           elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircleAvatar(
-                                  radius: 30, 
-                                  backgroundColor: secondaryColor.withOpacity(0.1), // Light accent bg
-                                  child: Icon(Icons.store, color: secondaryColor, size: 30)
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  retailer.businessName, 
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  retailer.address, 
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)
-                                ),
-                                const Spacer(),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      side: BorderSide(color: secondaryColor),
-                                      foregroundColor: secondaryColor,
-                                    ),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text("Details for ${retailer.businessName}"))
-                                      );
-                                    }, 
-                                    child: const Text("View Profile")
+                          // FIX: Added scroll view to prevent overflow on small screens
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 30, 
+                                    backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.1), 
+                                    child: Icon(Icons.store, color: Theme.of(context).colorScheme.secondary, size: 30)
                                   ),
-                                )
-                              ],
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    retailer.businessName, 
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    retailer.address, 
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );

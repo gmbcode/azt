@@ -35,7 +35,8 @@ class _RetailerCartPageState extends State<RetailerCartPage> {
                       return ListTile(
                         leading: Image.network(item['imageUrl'], width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (_,__,___)=>const Icon(Icons.image)),
                         title: Text(item['name']),
-                        subtitle: Text("${item['qty']} x \$${item['price']}"),
+                        // CURRENCY FIX
+                        subtitle: Text("${item['qty']} x ₹${item['price']}"),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => context.read<RetailerCubit>().removeFromCart(item['id']),
@@ -57,7 +58,8 @@ class _RetailerCartPageState extends State<RetailerCartPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Total: \$${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          // CURRENCY FIX
+                          Text("Total: ₹${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                           ElevatedButton(
                             onPressed: () {
                               if (_addressController.text.isEmpty) {

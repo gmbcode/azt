@@ -19,7 +19,6 @@ class wholeSalerDashboardpage extends StatelessWidget {
            final int retailerCount = state.retailers.length;
            final recentOrders = state.orders.take(5).toList();
            
-           // Responsive Check
            final bool isMobile = MediaQuery.of(context).size.width < 800;
 
            return SingleChildScrollView(
@@ -31,7 +30,6 @@ class wholeSalerDashboardpage extends StatelessWidget {
                   const Text("Dashboard", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
                   
-                  // FIXED: Use GridView or Wrap for mobile compatibility instead of Row
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final double cardWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 60) / 4;
@@ -41,7 +39,7 @@ class wholeSalerDashboardpage extends StatelessWidget {
                         runSpacing: 20,
                         children: [
                           SizedBox(width: cardWidth, child: SummaryCard(fontsize: isMobile ? 30 : 40, color: const Color(0xFF4CAF50), value: state.pendingOrdersCount.toString(), text: "Pending")),
-                          SizedBox(width: cardWidth, child: SummaryCard(fontsize: isMobile ? 24 : 25, color: const Color(0xFF2196F3), value: '\$${state.totalRevenue.toStringAsFixed(0)}', text: "Revenue")),
+                          SizedBox(width: cardWidth, child: SummaryCard(fontsize: isMobile ? 24 : 25, color: const Color(0xFF2196F3), value: '₹${state.totalRevenue.toStringAsFixed(0)}', text: "Revenue")),
                           SizedBox(width: cardWidth, child: SummaryCard(fontsize: isMobile ? 30 : 35, color: const Color(0xFFF44336), value: lowStockCount.toString(), text: "Low Stock")),
                           SizedBox(width: cardWidth, child: SummaryCard(fontsize: isMobile ? 30 : 35, color: const Color(0xFF9C27B0), value: retailerCount.toString(), text: "Retailers")),
                         ],
@@ -53,7 +51,6 @@ class wholeSalerDashboardpage extends StatelessWidget {
                   const Text("Recent Orders", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
                   
-                  // Wrap table in scroll view for mobile
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(

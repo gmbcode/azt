@@ -67,61 +67,60 @@ class _RetailerCustomersPageState extends State<RetailerCustomersPage> {
                       itemCount: filteredCustomers.length,
                       itemBuilder: (context, index) {
                         final customer = filteredCustomers[index];
-                        
-                        final customerOrders = state.customerOrders
-                            .where((o) => o.customerId == customer.id) 
-                            .toList();
-                        
+                        final customerOrders = state.customerOrders.where((o) => o.customerId == customer.id).toList();
                         final totalSpent = customerOrders.fold(0.0, (sum, o) => sum + o.total);
 
                         return Card(
                           elevation: 2,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircleAvatar(
-                                  radius: 30,
-                                  backgroundColor: Colors.blue[100],
-                                  child: Text(
-                                    customer.username.isNotEmpty ? customer.username[0].toUpperCase() : '?',
-                                    style: TextStyle(color: Colors.blue[800], fontSize: 24, fontWeight: FontWeight.bold),
+                          // FIX: Added ScrollView
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 30,
+                                    backgroundColor: Colors.blue[100],
+                                    child: Text(
+                                      customer.username.isNotEmpty ? customer.username[0].toUpperCase() : '?',
+                                      style: TextStyle(color: Colors.blue[800], fontSize: 24, fontWeight: FontWeight.bold),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  customer.username,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  customer.email,
-                                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const Divider(height: 20),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                  children: [
-                                    Column(
-                                      children: [
-                                        const Text("Orders", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                        Text("${customerOrders.length}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                    Column(
-                                      children: [
-                                        const Text("Spent", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                        Text("\$${totalSpent.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                      ],
-                                    ),
-                                  ],
-                                )
-                              ],
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    customer.username,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    customer.email,
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const Divider(height: 20),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      Column(
+                                        children: [
+                                          const Text("Orders", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                          Text("${customerOrders.length}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                      Column(
+                                        children: [
+                                          const Text("Spent", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                          Text("₹${totalSpent.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                         );

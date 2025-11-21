@@ -1,5 +1,4 @@
 import 'package:firebase_database/firebase_database.dart';
-// FIX: Hide Transaction from Firestore
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction; 
 import '../../../wholesaler/data/models/order_model.dart';
 import '../models/customer_product_model.dart';
@@ -16,6 +15,7 @@ class CustomerRepo {
         final Map<dynamic, dynamic> map = event.snapshot.value as Map<dynamic, dynamic>;
         map.forEach((key, value) {
           final item = CustomerProductModel.fromMap(key, value);
+          // Only show items with stock
           if (item.availableQty > 0) {
             items.add(item);
           }
@@ -48,7 +48,6 @@ class CustomerRepo {
     // Mirror to Retailer View
     final retailerOrderRef = _firestore.collection('orders_retailer').doc(orderRef.id);
     
-    // Batch write for atomicity in Firestore
     final batch = _firestore.batch();
     batch.set(orderRef, orderData);
     batch.set(retailerOrderRef, {
@@ -60,20 +59,37 @@ class CustomerRepo {
 
     // Decrement Stock in RTDB (listings_retailer)
     for (var item in items) {
-      // Check CustomerCartItemModel for correct key. Usually 'productId' maps to Listing ID.
       final String listingId = item['productId']; 
       final int qtyOrdered = item['qty'];
 
-      final ref = _rtdb.ref().child('listings_retailer/$listingId/available_listed_qty');
+      final ref = _rtdb.ref().child('listings_retailer/$listingId');
+      
       await ref.runTransaction((currentData) {
         if (currentData == null) return Transaction.abort();
-        final int currentQty = (currentData as num).toInt();
+        
+        final Map<dynamic, dynamic> data = currentData as Map<dynamic, dynamic>;
+        final int currentQty = (data['available_listed_qty'] as num).toInt();
+        
         if (currentQty >= qtyOrdered) {
-          return Transaction.success(currentQty - qtyOrdered);
+          final int newQty = currentQty - qtyOrdered;
+          // CRITICAL: Update qty. The removal happens by Client Logic usually, 
+          // but here we can just set it to 0. 
+          // RTDB Transaction doesn't support "delete node" easily inside the object update
+          // without replacing the whole parent with null.
+          // So we update qty. If 0, the 'getProductsStream' filters it out.
+          // Ideally, a Cloud Function cleans up 0-qty listings. 
+          data['available_listed_qty'] = newQty;
+          return Transaction.success(data);
         } else {
           return Transaction.abort();
         }
       });
+      
+      // Cleanup: Check if 0 and remove (Best effort from client side)
+      final snap = await ref.child('available_listed_qty').get();
+      if (snap.exists && (snap.value as num) <= 0) {
+         await ref.remove(); 
+      }
     }
   }
 

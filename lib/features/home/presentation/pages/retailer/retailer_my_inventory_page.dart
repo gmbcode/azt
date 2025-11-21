@@ -47,11 +47,11 @@ class RetailerMyInventoryPage extends StatelessWidget {
                         return ListTile(
                           leading: Image.network(item.imageUrl, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (_,__,___)=>const Icon(Icons.inventory)),
                           title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text("Stock: ${item.stockremain} | Cost: \$${item.costPrice.toStringAsFixed(2)} | Selling: \$${item.price.toStringAsFixed(2)}"),
+                          // CURRENCY FIX
+                          subtitle: Text("Stock: ${item.stockremain} | Cost: ₹${item.costPrice.toStringAsFixed(2)} | Selling: ₹${item.price.toStringAsFixed(2)}"),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Toggle Switch for Listing
                               Switch(
                                 value: item.isLive, 
                                 onChanged: (val) {
@@ -85,7 +85,6 @@ class RetailerMyInventoryPage extends StatelessWidget {
 
   void _showListDialog(BuildContext context, RetailerInventoryItemModel item) {
     final qtyController = TextEditingController();
-    // Pre-fill price with current selling price
     final priceController = TextEditingController(text: item.price.toString()); 
 
     showDialog(
@@ -99,7 +98,6 @@ class RetailerMyInventoryPage extends StatelessWidget {
             const Text("Set details for customers:"),
             const SizedBox(height: 15),
             
-            // 1. Quantity Input
             TextField(
               controller: qtyController, 
               keyboardType: TextInputType.number,
@@ -110,12 +108,12 @@ class RetailerMyInventoryPage extends StatelessWidget {
             ),
             const SizedBox(height: 15),
             
-            // 2. Price Input (Logic Requirement #1)
             TextField(
               controller: priceController, 
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                labelText: "Selling Price per Unit (\$)", 
+                // CURRENCY FIX
+                labelText: "Selling Price per Unit (₹)", 
                 border: OutlineInputBorder()
               ),
             ),
@@ -128,7 +126,6 @@ class RetailerMyInventoryPage extends StatelessWidget {
               int qty = int.tryParse(qtyController.text) ?? 0;
               double? price = double.tryParse(priceController.text);
 
-              // 3. Logic Requirement #2: Cross-check quantity
               if (qty <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Quantity must be greater than 0"))
@@ -142,7 +139,6 @@ class RetailerMyInventoryPage extends StatelessWidget {
                   const SnackBar(content: Text("Please enter a valid selling price"))
                 );
               } else {
-                // All checks passed
                 context.read<RetailerCubit>().toggleListing(item, qty, newPrice: price);
                 Navigator.pop(ctx);
               }

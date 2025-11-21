@@ -37,7 +37,6 @@ class RetailerDashboardPage extends StatelessWidget {
                 const Text("Dashboard", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
                 
-                // FIXED: Responsive Layout
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final double cardWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 40) / 3;
@@ -45,7 +44,7 @@ class RetailerDashboardPage extends StatelessWidget {
                       spacing: 20,
                       runSpacing: 20,
                       children: [
-                        SizedBox(width: cardWidth, child: SummaryCard(title: "Revenue", value: "\$${revenue.toStringAsFixed(0)}", color: Colors.green)),
+                        SizedBox(width: cardWidth, child: SummaryCard(title: "Revenue", value: "₹${revenue.toStringAsFixed(0)}", color: Colors.green)),
                         SizedBox(width: cardWidth, child: SummaryCard(title: "Pending", value: pendingOrders.toString(), color: Colors.orange)),
                         SizedBox(width: cardWidth, child: SummaryCard(title: "Low Stock", value: lowStockItems.toString(), color: Colors.red)),
                       ],
@@ -74,7 +73,7 @@ class RetailerDashboardPage extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text("\$${order.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text("₹${order.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
                             Text(order.orderStatus, style: TextStyle(color: order.statusColor, fontSize: 12)),
                           ],
                         ),

@@ -26,7 +26,8 @@ class CustomerOrdersPage extends StatelessWidget {
                 collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 leading: CircleAvatar(backgroundColor: order.statusColor.withOpacity(0.2), child: Icon(Icons.local_shipping, color: order.statusColor)),
                 title: Text("Order #${order.id.substring(0,5)}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text("${order.formattedOrderTime} • \$${order.total.toStringAsFixed(2)}"),
+                // CURRENCY FIX
+                subtitle: Text("${order.formattedOrderTime} • ₹${order.total.toStringAsFixed(2)}"),
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -46,7 +47,8 @@ class CustomerOrdersPage extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text("${map['qty']}x ${map['name']}", style: const TextStyle(fontSize: 14)),
-                                  Text("\$${map['price']}", style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                                  // CURRENCY FIX
+                                  Text("₹${map['price']}", style: const TextStyle(fontSize: 14, color: Colors.grey)),
                                 ],
                               ),
                             );

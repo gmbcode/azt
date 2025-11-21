@@ -132,6 +132,7 @@ class _RegisterPageState extends State<RegisterPage> {
               text: "Sign Up",
             ),
 
+            const SizedBox(height: 10),
             //already have acc login now  
             Row(
               mainAxisAlignment:MainAxisAlignment.center,

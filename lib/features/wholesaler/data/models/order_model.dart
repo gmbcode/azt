@@ -8,7 +8,7 @@ class OrderModel {
   final String deliveryAddress;
   final String orderStatus;
   final bool inventoryAdded;
-  final List<dynamic> items; // Added field
+  final List<dynamic> items; 
 
   OrderModel({
     required this.id,
@@ -22,8 +22,10 @@ class OrderModel {
   });
 
   factory OrderModel.fromJson(String id, Map<String, dynamic> json) {
-    // Robust ID parsing
-    String customerId = json['orderbyid']?.split('/').first ?? 'N/A';
+    // FIX: Grab the LAST part of the path (the UID), not the first
+    String customerId = json['orderbyid']?.split('/').last ?? 'N/A';
+    
+    // Fallback checks
     if (json.containsKey('customer_uid')) customerId = json['customer_uid'];
     if (json.containsKey('retailer_uid')) customerId = json['retailer_uid'];
     
@@ -51,7 +53,7 @@ class OrderModel {
       deliveryAddress: json['deliveryaddress'] ?? 'Unknown Address',
       orderStatus: normalizedStatus,
       inventoryAdded: json['inventoryAdded'] ?? false,
-      items: json['items'] ?? [], // Parsing the items list
+      items: json['items'] ?? [], 
     );
   }
 

@@ -75,11 +75,11 @@ class _InventoryPageState extends State<InventoryPage> {
                             child: const Icon(Icons.inventory_2, color: Colors.orange),
                           ),
                           title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text("Stock: ${item.stock} | Price: \$${item.price} | MOQ: ${item.moq}"),
+                          // CURRENCY FIX HERE
+                          subtitle: Text("Stock: ${item.stock} | Price: ₹${item.price} | MOQ: ${item.moq}"),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // EDIT BUTTON
                               IconButton(
                                 icon: const Icon(Icons.edit, color: Colors.blue),
                                 onPressed: () => _showEditDialog(context, item),
@@ -114,7 +114,6 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  // --- LOGIC: List Item ---
   void _showListDialog(BuildContext context, WholesalerInventoryItem item) {
     final qtyController = TextEditingController();
     showDialog(
@@ -145,14 +144,10 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  // --- LOGIC: Edit Item ---
   void _showEditDialog(BuildContext context, WholesalerInventoryItem item) {
     final nameCtrl = TextEditingController(text: item.name);
     final priceCtrl = TextEditingController(text: item.price.toString());
     final stockCtrl = TextEditingController(text: item.stock.toString());
-    
-    // Note: We need to access the repo to update. Ideally, add updateProduct to Cubit.
-    // For now, I'll assume you added `updateProduct` to WholesalerCubit in step 4 below.
     
     showDialog(
       context: context,
@@ -182,7 +177,6 @@ class _InventoryPageState extends State<InventoryPage> {
                 isListed: item.isListed,
                 listingId: item.listingId,
               );
-              // TRIGGER CUBIT UPDATE (Requires update in Cubit)
               context.read<WholesalerCubit>().updateProduct(updatedItem);
               Navigator.pop(ctx);
             },

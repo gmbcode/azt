@@ -18,8 +18,12 @@ class _OrdersPageState extends State<OrdersPage> {
 
   String _getRetailerName(String uid, List<dynamic> retailers) {
     try {
-      final retailer = retailers.firstWhere((r) => r.uid == uid);
-      return retailer.businessName;
+      // Robust lookup
+      final retailer = retailers.firstWhere(
+        (r) => r.uid == uid, 
+        orElse: () => null
+      );
+      return retailer != null ? retailer.businessName : 'Retailer ($uid)';
     } catch (e) {
       return 'Retailer ($uid)';
     }
@@ -41,8 +45,19 @@ class _OrdersPageState extends State<OrdersPage> {
         
         if (state is WholesalerLoaded) {
           List<OrderModel> filtered = state.orders;
+          
+          // Filter by Status
           if (_selectedFilter != 'All') filtered = filtered.where((o) => o.orderStatus == _selectedFilter).toList();
-          if (_searchTerm.isNotEmpty) filtered = filtered.where((o) => o.id.contains(_searchTerm) || o.customerId.contains(_searchTerm)).toList();
+          
+          // Filter by Search
+          if (_searchTerm.isNotEmpty) {
+            filtered = filtered.where((o) {
+              final retailerName = _getRetailerName(o.customerId, state.retailers);
+              return o.id.toLowerCase().contains(_searchTerm.toLowerCase()) || 
+                     o.customerId.toLowerCase().contains(_searchTerm.toLowerCase()) ||
+                     retailerName.toLowerCase().contains(_searchTerm.toLowerCase());
+            }).toList();
+          }
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -64,12 +79,15 @@ class _OrdersPageState extends State<OrdersPage> {
                       separatorBuilder: (_,__) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final order = filtered[index];
+                        // FIX: Correctly fetching Business Name
                         final retailerName = _getRetailerName(order.customerId, state.retailers);
+                        final bool isCompleted = order.orderStatus == 'Completed' || order.orderStatus == 'Delivered';
+
                         return CheckboxListTile(
                           value: _selectionMap[order.id] ?? false,
-                          onChanged: (val) => setState(() => _selectionMap[order.id] = val ?? false),
+                          onChanged: isCompleted ? null : (val) => setState(() => _selectionMap[order.id] = val ?? false),
                           title: Text(retailerName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text("Order #${order.id.substring(0,5)} • \$${order.total.toStringAsFixed(2)}\n${order.formattedOrderTime}"),
+                          subtitle: Text("Order #${order.id.substring(0,5)} • ₹${order.total.toStringAsFixed(2)}\n${order.formattedOrderTime}"),
                           secondary: Chip(label: Text(order.orderStatus, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: order.statusColor, padding: EdgeInsets.zero),
                           isThreeLine: true,
                         );
