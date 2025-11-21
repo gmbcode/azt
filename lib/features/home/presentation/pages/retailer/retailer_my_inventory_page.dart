@@ -46,11 +46,12 @@ class RetailerMyInventoryPage extends StatelessWidget {
                         final item = state.inventory[index];
                         return ListTile(
                           leading: Image.network(item.imageUrl, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (_,__,___)=>const Icon(Icons.inventory)),
-                          title: Text(item.name),
-                          subtitle: Text("Stock: ${item.stockremain} | Selling Price: \$${item.price}"),
+                          title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text("Stock: ${item.stockremain} | Cost: \$${item.costPrice.toStringAsFixed(2)} | Selling: \$${item.price.toStringAsFixed(2)}"),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Toggle Switch for Listing
                               Switch(
                                 value: item.isLive, 
                                 onChanged: (val) {
@@ -61,6 +62,7 @@ class RetailerMyInventoryPage extends StatelessWidget {
                                   }
                                 }
                               ),
+                              const SizedBox(width: 10),
                               IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.grey),
                                 onPressed: () => context.read<RetailerCubit>().deleteInventoryItem(item.id),
@@ -83,7 +85,8 @@ class RetailerMyInventoryPage extends StatelessWidget {
 
   void _showListDialog(BuildContext context, RetailerInventoryItemModel item) {
     final qtyController = TextEditingController();
-    final priceController = TextEditingController(text: item.price.toString()); // Pre-fill with current price
+    // Pre-fill price with current selling price
+    final priceController = TextEditingController(text: item.price.toString()); 
 
     showDialog(
       context: context,
@@ -91,20 +94,30 @@ class RetailerMyInventoryPage extends StatelessWidget {
         title: Text("List ${item.name}"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("Set details for customers:"),
             const SizedBox(height: 15),
+            
+            // 1. Quantity Input
             TextField(
               controller: qtyController, 
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Quantity to List", border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: "Quantity to List (Max: ${item.stockremain})", 
+                border: const OutlineInputBorder()
+              ),
             ),
             const SizedBox(height: 15),
-            // ** NEW: Price Field **
+            
+            // 2. Price Input (Logic Requirement #1)
             TextField(
               controller: priceController, 
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Selling Price (\$)", border: OutlineInputBorder()),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: "Selling Price per Unit (\$)", 
+                border: OutlineInputBorder()
+              ),
             ),
           ],
         ),
@@ -115,13 +128,23 @@ class RetailerMyInventoryPage extends StatelessWidget {
               int qty = int.tryParse(qtyController.text) ?? 0;
               double? price = double.tryParse(priceController.text);
 
-              if (qty > 0 && qty <= item.stockremain && price != null) {
+              // 3. Logic Requirement #2: Cross-check quantity
+              if (qty <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Quantity must be greater than 0"))
+                );
+              } else if (qty > item.stockremain) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error: You only have ${item.stockremain} items in stock!"))
+                );
+              } else if (price == null || price <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please enter a valid selling price"))
+                );
+              } else {
+                // All checks passed
                 context.read<RetailerCubit>().toggleListing(item, qty, newPrice: price);
                 Navigator.pop(ctx);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Invalid Quantity or Price"))
-                );
               }
             },
             child: const Text("List Item"),

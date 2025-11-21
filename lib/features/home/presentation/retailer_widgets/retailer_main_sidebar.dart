@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/presentation/cubits/auth_cubit.dart';
 import 'retailer_sidebar_item.dart';
 
 class RetailerMainSidebar extends StatelessWidget {
   final String selectedPage;
-  final ValueChanged<String> onPageChanged; // Changed from internal navigation to callback
+  final ValueChanged<String> onPageChanged;
 
   const RetailerMainSidebar({
     super.key,
@@ -13,38 +15,52 @@ class RetailerMainSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Theme Aware Color
-    final sidebarColor = Theme.of(context).appBarTheme.backgroundColor ?? const Color.fromARGB(255, 2, 18, 37);
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      width: 250,
-      color: sidebarColor,
+      width: 260,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark 
+            ? [const Color(0xFF1E1E2C), const Color(0xFF2D2D44)] 
+            : [Colors.blue.shade900, Colors.blue.shade800],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 80,
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const Row(
+          const SizedBox(height: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
               children: [
-                Icon(Icons.store, color: Colors.white, size: 32),
-                SizedBox(width: 10),
-                Text("Retailer Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                const Icon(Icons.store, color: Colors.white, size: 32),
+                const SizedBox(width: 12),
+                const Text("Retailer Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
               ],
             ),
           ),
-          const Divider(color: Colors.white24, height: 1),
-          const SizedBox(height: 20),
-
-          // Use onPageChanged callback instead of Navigator
-          SidebarItem(icon: Icons.dashboard, text: 'Dashboard', isSelected: selectedPage == 'dashboard', onTap: () => onPageChanged('dashboard')),
-          SidebarItem(icon: Icons.search, text: "Browse Products", isSelected: selectedPage == 'browse_products', onTap: () => onPageChanged('browse_products')),
-          SidebarItem(icon: Icons.shopping_cart, text: "My Purchases", isSelected: selectedPage == 'my_purchases', onTap: () => onPageChanged('my_purchases')),
-          SidebarItem(icon: Icons.inventory, text: "My Inventory", isSelected: selectedPage == 'my_inventory', onTap: () => onPageChanged('my_inventory')),
+          const SizedBox(height: 30),
+          const Divider(color: Colors.white12, height: 1),
+          
+          SidebarItem(icon: Icons.dashboard_outlined, text: 'Dashboard', isSelected: selectedPage == 'dashboard', onTap: () => onPageChanged('dashboard')),
+          SidebarItem(icon: Icons.search, text: "Browse Wholesalers", isSelected: selectedPage == 'browse_products', onTap: () => onPageChanged('browse_products')),
+          SidebarItem(icon: Icons.shopping_cart_outlined, text: "My Purchases", isSelected: selectedPage == 'my_purchases', onTap: () => onPageChanged('my_purchases')),
+          SidebarItem(icon: Icons.inventory_2_outlined, text: "My Inventory", isSelected: selectedPage == 'my_inventory', onTap: () => onPageChanged('my_inventory')),
           SidebarItem(icon: Icons.list_alt, text: "My Listings", isSelected: selectedPage == 'listings', onTap: () => onPageChanged('listings')),
-          SidebarItem(icon: Icons.assignment, text: "Customer Orders", isSelected: selectedPage == 'customer_orders', onTap: () => onPageChanged('customer_orders')),
-          SidebarItem(icon: Icons.group, text: "My Customers", isSelected: selectedPage == 'customers', onTap: () => onPageChanged('customers')),
+          SidebarItem(icon: Icons.assignment_outlined, text: "Customer Orders", isSelected: selectedPage == 'customer_orders', onTap: () => onPageChanged('customer_orders')),
+          SidebarItem(icon: Icons.people_outline, text: "My Customers", isSelected: selectedPage == 'customers', onTap: () => onPageChanged('customers')),
+          
+          const Spacer(),
+          const Divider(color: Colors.white12),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            onTap: () => context.read<AuthCubit>().logout(),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

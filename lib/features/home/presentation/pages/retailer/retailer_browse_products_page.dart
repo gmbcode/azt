@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../retailer/presentation/cubits/retailer_cubit.dart';
-import '../../retailer_widgets/retailer_reusable_search_bar.dart';
 import 'retailer_cart_page.dart';
 
 class RetailerBrowseProductsPage extends StatefulWidget {
@@ -12,6 +11,7 @@ class RetailerBrowseProductsPage extends StatefulWidget {
 
 class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage> {
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -24,95 +24,108 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
              p.name.toLowerCase().contains(_searchQuery.toLowerCase())
           ).toList();
 
+          final Map<String, int> cartCounts = {};
+          for (var item in state.cartItems) {
+            cartCounts[item['id']] = item['qty'];
+          }
+
           return Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ReusableSearchBar(
-                          hintText: 'Search products...',
-                          onChanged: (val) => setState(() => _searchQuery = val),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                        style: const TextStyle(color: Colors.black87), 
+                        decoration: InputDecoration(
+                          hintText: "Search products...",
+                          hintStyle: TextStyle(color: Colors.grey[600]),
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                         ),
                       ),
-                      const SizedBox(width: 20),
-                      
-                      // --- CART BUTTON (FIXED) ---
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.shopping_cart),
-                        label: Text('Cart (${state.cartItems.length})'),
-                        onPressed: () {
-                          // 1. Capture the existing cubit from the current context
-                          final retailerCubit = context.read<RetailerCubit>();
-                          
-                          // 2. Navigate, wrapping the destination in BlocProvider.value
-                          Navigator.push(
-                            context, 
-                            MaterialPageRoute(
-                              builder: (_) => BlocProvider.value(
-                                value: retailerCubit, // Pass the EXISTING cubit instance
-                                child: const RetailerCartPage(),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 250,
-                      childAspectRatio: 0.75,
-                      mainAxisSpacing: 20,
-                      crossAxisSpacing: 20,
                     ),
-                    itemCount: products.length,
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      return Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Image.network(
-                                product.imageUrl, 
-                                fit: BoxFit.cover, 
-                                width: double.infinity,
-                                errorBuilder: (_,__,___) => Container(color: Colors.grey[300], child: const Icon(Icons.image)),
-                              )
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  Text('\$${product.price}', style: const TextStyle(color: Colors.green)),
-                                  Text('Avail: ${product.availableQty}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: () => context.read<RetailerCubit>().addToCart(product),
-                                      child: const Text("Add to Cart"),
-                                    ),
-                                  )
-                                ],
+                    const SizedBox(width: 16),
+                    if (MediaQuery.of(context).size.width > 800)
+                      FloatingActionButton.extended(
+                        onPressed: () {
+                          final retailerCubit = context.read<RetailerCubit>();
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: retailerCubit, child: const RetailerCartPage())));
+                        },
+                        label: Text("Cart (${state.cartItems.length})"),
+                        icon: const Icon(Icons.shopping_cart),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: products.isEmpty 
+                  ? Center(child: Text("No products found", style: TextStyle(color: Colors.grey[600])))
+                  : GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 220,
+                        childAspectRatio: 0.7,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                      ),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        final int inCartQty = cartCounts[product.id] ?? 0;
+
+                        return Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.network(product.imageUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Container(color: Colors.grey[200], child: const Icon(Icons.image))),
+                                    if (inCartQty > 0)
+                                      Positioned(
+                                        top: 8, right: 8,
+                                        child: CircleAvatar(
+                                          backgroundColor: Colors.orange,
+                                          radius: 14,
+                                          child: Text("$inCartQty", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                      )
+                                  ],
+                                )
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                              Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    Text('\$${product.price}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 36,
+                                      child: ElevatedButton(
+                                        onPressed: () => context.read<RetailerCubit>().addToCart(product),
+                                        child: const Text("Add to Cart"),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                 ),
               ],
             ),

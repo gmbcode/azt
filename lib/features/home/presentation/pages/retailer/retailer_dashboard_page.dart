@@ -7,11 +7,8 @@ class RetailerDashboardPage extends StatelessWidget {
   const RetailerDashboardPage({super.key});
 
   String _formatOrderTime(String timeString) {
-    try {
-      return DateTime.parse(timeString).toLocal().toString().substring(0, 16);
-    } catch (e) {
-      return timeString;
-    }
+    try { return DateTime.parse(timeString).toLocal().toString().substring(0, 16); } 
+    catch (e) { return timeString; }
   }
 
   @override
@@ -24,18 +21,14 @@ class RetailerDashboardPage extends StatelessWidget {
           final double revenue = state.customerOrders
               .where((o) => o.orderStatus.toLowerCase() != 'cancelled')
               .fold(0.0, (sum, item) => sum + item.total);
-              
           final int pendingOrders = state.customerOrders
               .where((o) => ['pending', 'processing'].contains(o.orderStatus.toLowerCase()))
               .length;
-              
-          final int lowStockItems = state.inventory
-              .where((i) => i.stockremain < 10)
-              .length;
-          
+          final int lowStockItems = state.inventory.where((i) => i.stockremain < 10).length;
           final recentOrders = state.customerOrders.take(5).toList();
+          
+          final bool isMobile = MediaQuery.of(context).size.width < 800;
 
-          // Return ONLY the content, no Sidebar
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -44,14 +37,20 @@ class RetailerDashboardPage extends StatelessWidget {
                 const Text("Dashboard", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
                 
-                Row(
-                  children: [
-                    Expanded(child: SummaryCard(title: "My Revenue", value: "\$${revenue.toStringAsFixed(0)}", color: Colors.green)),
-                    const SizedBox(width: 20),
-                    Expanded(child: SummaryCard(title: "Pending Orders", value: pendingOrders.toString(), color: Colors.orange)),
-                    const SizedBox(width: 20),
-                    Expanded(child: SummaryCard(title: "Low Stock", value: lowStockItems.toString(), color: Colors.red)),
-                  ],
+                // FIXED: Responsive Layout
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double cardWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 40) / 3;
+                    return Wrap(
+                      spacing: 20,
+                      runSpacing: 20,
+                      children: [
+                        SizedBox(width: cardWidth, child: SummaryCard(title: "Revenue", value: "\$${revenue.toStringAsFixed(0)}", color: Colors.green)),
+                        SizedBox(width: cardWidth, child: SummaryCard(title: "Pending", value: pendingOrders.toString(), color: Colors.orange)),
+                        SizedBox(width: cardWidth, child: SummaryCard(title: "Low Stock", value: lowStockItems.toString(), color: Colors.red)),
+                      ],
+                    );
+                  }
                 ),
                 
                 const SizedBox(height: 30),
@@ -59,7 +58,7 @@ class RetailerDashboardPage extends StatelessWidget {
                 const SizedBox(height: 10),
                 
                 Container(
-                  decoration: BoxDecoration(color:Theme.of(context).colorScheme.secondary, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.secondary, borderRadius: BorderRadius.circular(8)),
                   child: ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),

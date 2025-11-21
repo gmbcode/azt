@@ -10,9 +10,7 @@ class CustomerOrdersPage extends StatelessWidget {
     return BlocBuilder<CustomerCubit, CustomerState>(
       builder: (context, state) {
         if (state is CustomerLoaded) {
-          if (state.orders.isEmpty) {
-            return Center(child: Text("No orders yet.", style: TextStyle(color: Colors.grey.shade600)));
-          }
+          if (state.orders.isEmpty) return Center(child: Text("No orders yet.", style: TextStyle(color: Colors.grey.shade600)));
 
           return ListView.separated(
             padding: const EdgeInsets.all(20),
@@ -26,11 +24,7 @@ class CustomerOrdersPage extends StatelessWidget {
                 textColor: Theme.of(context).colorScheme.onSurface,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                
-                leading: CircleAvatar(
-                  backgroundColor: order.statusColor.withOpacity(0.2),
-                  child: Icon(Icons.local_shipping, color: order.statusColor),
-                ),
+                leading: CircleAvatar(backgroundColor: order.statusColor.withOpacity(0.2), child: Icon(Icons.local_shipping, color: order.statusColor)),
                 title: Text("Order #${order.id.substring(0,5)}", style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text("${order.formattedOrderTime} • \$${order.total.toStringAsFixed(2)}"),
                 children: [
@@ -41,13 +35,24 @@ class CustomerOrdersPage extends StatelessWidget {
                       children: [
                         const Divider(),
                         Text("Status: ${order.orderStatus}", style: TextStyle(color: order.statusColor, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 5),
-                        Text("Delivering to: ${order.deliveryAddress}"),
                         const SizedBox(height: 10),
                         const Text("Items:", style: TextStyle(fontWeight: FontWeight.bold)),
-                        // Items List logic would go here if OrderModel parsed 'items' fully
-                        // Currently OrderModel stores dynamic items, simplified display:
-                        const Text("View items details in invoice (Coming Soon)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        if (order.items.isNotEmpty)
+                          ...order.items.map<Widget>((item) {
+                            final map = item as Map;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text("${map['qty']}x ${map['name']}", style: const TextStyle(fontSize: 14)),
+                                  Text("\$${map['price']}", style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                                ],
+                              ),
+                            );
+                          }).toList()
+                        else
+                          const Text("Item details not available"),
                       ],
                     ),
                   )

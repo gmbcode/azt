@@ -29,16 +29,43 @@ class WholesalerRepo {
     await newRef.set(item.toMap());
   }
 
+  // FIXED: Updates both Inventory AND Public Listing if it exists
+  Future<void> updateInventoryItem(String uid, WholesalerInventoryItem item) async {
+    // 1. Update Private Inventory
+    await _rtdb.ref().child('wholesalers/$uid/inventory/${item.id}').update(item.toMap());
+
+    // 2. Check if Listed & Sync Changes
+    if (item.isListed && item.listingId != null) {
+      await _rtdb.ref().child('listings_wholesaler/${item.listingId}').update({
+        'name': item.name,
+        'price': item.price,
+        'imageUrl': item.imageUrl,
+        'category': item.category,
+        'moq': item.moq,
+        // Note: We typically don't sync 'stock' directly to 'available_listed_qty' 
+        // automatically unless you want stock changes to override listed qty. 
+        // For safety, we usually leave qty management to the "List" action, 
+        // but price/name/image updates should definitely sync.
+      });
+    }
+  }
+
   Future<void> deleteInventoryItem(String uid, String itemId) async {
+    final snapshot = await _rtdb.ref().child('wholesalers/$uid/inventory/$itemId').get();
+    if (snapshot.exists && snapshot.value is Map) {
+      final data = snapshot.value as Map;
+      final String? listingId = data['listingId'];
+      if (listingId != null && listingId.isNotEmpty) {
+        await _rtdb.ref().child('listings_wholesaler/$listingId').remove();
+      }
+    }
     await _rtdb.ref().child('wholesalers/$uid/inventory/$itemId').remove();
   }
 
-  // --- LISTINGS (RTDB) ---
+  // --- LISTINGS ---
   
   Future<void> listProduct(String uid, WholesalerInventoryItem item, int quantityToList) async {
-    // 1. Create entry in listings_wholesaler (publicly visible)
     final listingRef = _rtdb.ref().child('listings_wholesaler').push();
-    
     final listingData = {
       'wholesalerId': uid,
       'inventoryItemId': item.id,
@@ -49,51 +76,23 @@ class WholesalerRepo {
       'category': item.category,
       'moq': item.moq,
     };
-
     await listingRef.set(listingData);
-
-    // 2. Update private inventory to mark as listed
     await _rtdb.ref().child('wholesalers/$uid/inventory/${item.id}').update({
       'isListed': true,
       'listingId': listingRef.key,
     });
   }
 
-  // --- ORDERS (Firestore) ---
-
-  Stream<List<OrderModel>> getOrdersStream(String wholesalerId) {
-    // NOTE: Ensure you have a composite index if you add more filters/sorts
-    return _firestore
-        .collection('orders_retailer')
-        .where('wholesaler_seller_uid', isEqualTo: wholesalerId)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return OrderModel.fromJson(doc.id, doc.data());
-      }).toList();
+  Future<void> deleteListing(String listingId, String inventoryItemId, String uid) async {
+    await _rtdb.ref().child('listings_wholesaler/$listingId').remove();
+    await _rtdb.ref().child('wholesalers/$uid/inventory/$inventoryItemId').update({
+      'isListed': false,
+      'listingId': null,
     });
   }
 
-  Future<void> updateOrderStatus(String orderId, String newStatus) async {
-    await _firestore.collection('orders_retailer').doc(orderId).update({
-      'status': newStatus.toLowerCase(),
-    });
-  }
-  Stream<List<WholesalerViewRetailerModel>> getRetailersStream() {
-    return _firestore.collection('retailers').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return WholesalerViewRetailerModel.fromMap(doc.data());
-      }).toList();
-    });
-  }
   Stream<List<WholesalerListing>> getListingsStream(String uid) {
-    // Query 'listings_wholesaler' where 'wholesalerId' matches current user
-    return _rtdb.ref()
-        .child('listings_wholesaler')
-        .orderByChild('wholesalerId')
-        .equalTo(uid)
-        .onValue
-        .map((event) {
+    return _rtdb.ref().child('listings_wholesaler').orderByChild('wholesalerId').equalTo(uid).onValue.map((event) {
       final List<WholesalerListing> items = [];
       if (event.snapshot.value != null && event.snapshot.value is Map) {
         final Map<dynamic, dynamic> map = event.snapshot.value as Map<dynamic, dynamic>;
@@ -105,15 +104,27 @@ class WholesalerRepo {
     });
   }
 
-  // Add logic to delete/delist a product
-  Future<void> deleteListing(String listingId, String inventoryItemId, String uid) async {
-    // 1. Remove from listings
-    await _rtdb.ref().child('listings_wholesaler/$listingId').remove();
-    
-    // 2. Update inventory to show it is no longer listed
-    await _rtdb.ref().child('wholesalers/$uid/inventory/$inventoryItemId').update({
-      'isListed': false,
-      'listingId': null,
+  // --- ORDERS & RETAILERS ---
+
+  Stream<List<OrderModel>> getOrdersStream(String wholesalerId) {
+    return _firestore.collection('orders_retailer').where('wholesaler_seller_uid', isEqualTo: wholesalerId).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return OrderModel.fromJson(doc.id, doc.data());
+      }).toList();
+    });
+  }
+
+  Future<void> updateOrderStatus(String orderId, String newStatus) async {
+    await _firestore.collection('orders_retailer').doc(orderId).update({'status': newStatus.toLowerCase()});
+  }
+
+  Stream<List<WholesalerViewRetailerModel>> getRetailersStream() {
+    return _firestore.collection('retailers').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        if (data['uid'] == null) data['uid'] = doc.id;
+        return WholesalerViewRetailerModel.fromMap(data);
+      }).toList();
     });
   }
 }

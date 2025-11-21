@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// FIX: Hide Transaction from Firestore
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction; 
 import '../../../wholesaler/data/models/order_model.dart';
 import '../models/customer_product_model.dart';
 
@@ -24,7 +25,7 @@ class CustomerRepo {
     });
   }
 
-  // 2. Place Order
+  // 2. Place Order (Decrements Retailer Stock)
   Future<void> placeOrder({
     required String customerUid,
     required String retailerUid,
@@ -32,6 +33,7 @@ class CustomerRepo {
     required double total,
     required String address,
   }) async {
+    // Write to Firestore (Customer View)
     final orderRef = _firestore.collection('orders_customer').doc();
     final orderData = {
       'customer_uid': customerUid,
@@ -42,19 +44,37 @@ class CustomerRepo {
       'status': 'pending',
       'ordertime': DateTime.now().toIso8601String(),
     };
-    // Also creating a mirror in 'orders_retailer' logic is usually handled by backend functions 
-    // or double writes. For now, writing to 'orders_customer' is sufficient for the View.
-    // Ideally, Retailer listens to this or we write to retailer's collection too.
-    // Writing to 'orders_retailer' as well for the Retailer UI to pick it up:
     
+    // Mirror to Retailer View
     final retailerOrderRef = _firestore.collection('orders_retailer').doc(orderRef.id);
-    await retailerOrderRef.set({
+    
+    // Batch write for atomicity in Firestore
+    final batch = _firestore.batch();
+    batch.set(orderRef, orderData);
+    batch.set(retailerOrderRef, {
       ...orderData,
-      'orderbyid': 'customers/$customerUid', // Reference
+      'orderbyid': 'customers/$customerUid', 
       'inventoryAdded': false,
     });
-    
-    await orderRef.set(orderData);
+    await batch.commit();
+
+    // Decrement Stock in RTDB (listings_retailer)
+    for (var item in items) {
+      // Check CustomerCartItemModel for correct key. Usually 'productId' maps to Listing ID.
+      final String listingId = item['productId']; 
+      final int qtyOrdered = item['qty'];
+
+      final ref = _rtdb.ref().child('listings_retailer/$listingId/available_listed_qty');
+      await ref.runTransaction((currentData) {
+        if (currentData == null) return Transaction.abort();
+        final int currentQty = (currentData as num).toInt();
+        if (currentQty >= qtyOrdered) {
+          return Transaction.success(currentQty - qtyOrdered);
+        } else {
+          return Transaction.abort();
+        }
+      });
+    }
   }
 
   // 3. Fetch My Orders

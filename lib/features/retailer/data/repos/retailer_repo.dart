@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// FIXED: Hide Transaction to prevent conflict with Realtime Database Transaction
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction; 
 import '../../../wholesaler/data/models/wholesaler_listing_model.dart';
 import '../../../wholesaler/data/models/order_model.dart';
 import '../../../home/presentation/retailer_models/retailer_inventory_item_model.dart';
@@ -50,6 +51,23 @@ class RetailerRepo {
       'inventoryAdded': false,
     };
     await orderRef.set(orderData);
+
+    // Decrement Wholesaler Stock (Transaction)
+    for (var item in items) {
+      final String listingId = item['id']; 
+      final int qtyOrdered = item['qty'];
+
+      final ref = _rtdb.ref().child('listings_wholesaler/$listingId/available_listed_qty');
+      await ref.runTransaction((currentData) {
+        if (currentData == null) return Transaction.abort();
+        final int currentQty = (currentData as num).toInt();
+        if (currentQty >= qtyOrdered) {
+          return Transaction.success(currentQty - qtyOrdered);
+        } else {
+          return Transaction.abort();
+        }
+      });
+    }
   }
 
   Stream<List<OrderModel>> getMyPurchasesStream(String retailerUid) {
@@ -120,7 +138,7 @@ class RetailerRepo {
     });
   }
 
-  // UPDATED: Added optional newPrice parameter
+  // --- LISTINGS (Updated with Price Logic) ---
   Future<void> toggleProductListing(String uid, RetailerInventoryItemModel item, int qtyToList, {double? newPrice}) async {
     if (!item.isLive) {
       // GOING LIVE
@@ -132,7 +150,7 @@ class RetailerRepo {
         'inventoryItemId': item.id,
         'available_listed_qty': qtyToList,
         'name': item.name,
-        'price': listingPrice, // Use new price
+        'price': listingPrice, // Using the new Set Price
         'imageUrl': item.imageUrl,
         'category': item.category,
       };
@@ -143,7 +161,7 @@ class RetailerRepo {
         'isLive': true,
         'listingId': listingRef.key,
         'listedQty': qtyToList,
-        'price': listingPrice, // Update inventory price to match listing
+        'price': listingPrice, 
       });
     } else {
       // REMOVING LISTING
@@ -158,12 +176,37 @@ class RetailerRepo {
     }
   }
   
+  // FIXED: Syncs edits to public listing (MISSING IN YOUR PASTE)
+  Future<void> updateInventoryItem(String uid, RetailerInventoryItemModel item) async {
+    // 1. Update Private Inventory
+    await _rtdb.ref().child('retailers/$uid/inventory/${item.id}').update(item.toMap());
+
+    // 2. Sync with Listing if Live
+    if (item.isLive && item.listingId != null) {
+      await _rtdb.ref().child('listings_retailer/${item.listingId}').update({
+        'name': item.name,
+        'price': item.price, // Syncs new selling price
+        'imageUrl': item.imageUrl,
+        'category': item.category,
+      });
+    }
+  }
+
   Future<void> addInventoryItem(String uid, RetailerInventoryItemModel item) async {
     final newRef = _rtdb.ref().child('retailers/$uid/inventory').push();
     await newRef.set(item.toMap());
   }
   
   Future<void> deleteInventoryItem(String uid, String itemId) async {
+     // Check for listing and remove if exists (Cleanup)
+     final snap = await _rtdb.ref().child('retailers/$uid/inventory/$itemId').get();
+     if (snap.exists) {
+       final data = snap.value as Map;
+       final listingId = data['listingId'];
+       if (listingId != null) {
+         await _rtdb.ref().child('listings_retailer/$listingId').remove();
+       }
+     }
      await _rtdb.ref().child('retailers/$uid/inventory/$itemId').remove();
   }
 
@@ -187,11 +230,7 @@ class RetailerRepo {
   }
 
   Stream<List<Map<String, dynamic>>> getAppUsersStream() {
-    return _firestore
-        .collection('users')
-        .where('roleAllot', isEqualTo: 'customer')
-        .snapshots()
-        .map((snapshot) {
+    return _firestore.collection('users').where('roleAllot', isEqualTo: 'customer').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['uid'] = doc.id;
