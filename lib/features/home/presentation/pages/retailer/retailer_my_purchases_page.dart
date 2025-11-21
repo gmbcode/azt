@@ -1,192 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../retailer/presentation/cubits/retailer_cubit.dart';
+import '../../../../wholesaler/data/models/order_model.dart'; // Import OrderModel
 
-import '../../retailer_models/retailer_order_model.dart';
-import '../../retailer_models/retailer_payment_status_model.dart';
-import '../../retailer_widgets/retailer_main_sidebar.dart';
-import '../../retailer_widgets/retailer_reusable_order_table.dart';
-import '../../retailer_widgets/retailer_reusable_search_bar.dart';
-import '../../retailer_widgets/retailer_status_filter_chips.dart';
-
-
-class RetailerMyPurchasesPage extends StatefulWidget {
+class RetailerMyPurchasesPage extends StatelessWidget {
   const RetailerMyPurchasesPage({super.key});
 
   @override
-  State<RetailerMyPurchasesPage> createState() => _RetailerMyPurchasesPageState();
-}
-
-class _RetailerMyPurchasesPageState extends State<RetailerMyPurchasesPage> {
-  // --- STATE ---
-  List<OrderModel> _allPurchases = [];
-  List<OrderModel> _filteredPurchases = [];
-  Set<String> _selectedPurchaseIds = {};
-  String _selectedStatus = 'All';
-  String _searchQuery = '';
-
-  final List<String> _filters = [
-    'All', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchPurchases();
-  }
-
-  void _fetchPurchases() {
-    // --- HARDCODED DATA ADDED ---
-    final List<OrderModel> dummyPurchases = [
-      OrderModel(
-        id: 'WHO-1001', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_1',
-        ordertime: '2025-11-20T09:30:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'delivered', total: 450.0, trackinghistory: [],
-      ),
-      OrderModel(
-        id: 'WHO-1002', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_2',
-        ordertime: '2025-11-22T14:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'online', status: 'paid'),
-        status: 'shipped', total: 120.0, trackinghistory: [],
-      ),
-       OrderModel(
-        id: 'WHO-1003', deliveryaddress: 'My Retail Store, 123 Main St', items: [],
-        orderbyid: 'my_retailer_id', orderfromid: 'wholesaler_1',
-        ordertime: '2025-11-25T11:00:00Z',
-        paymentstatus: PaymentStatusModel(method: 'offline', status: 'pending'),
-        status: 'pending', total: 800.0, trackinghistory: [],
-      ),
-    ];
-    
-    setState(() {
-      _allPurchases = dummyPurchases;
-      _filteredPurchases = _allPurchases;
-    });
-  }
-
-  void _filterAndSearch() {
-    setState(() {
-      _filteredPurchases = _allPurchases.where((purchase) {
-        final bool matchesStatus = _selectedStatus == 'All' ||
-            purchase.status.toLowerCase() == _selectedStatus.toLowerCase();
-        final bool matchesSearch = _searchQuery.isEmpty ||
-            purchase.id.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            purchase.orderfromid.toLowerCase().contains(_searchQuery.toLowerCase());
-        return matchesStatus && matchesSearch;
-      }).toList();
-    });
-  }
-
-  void _onStatusSelected(String status) {
-    setState(() { _selectedStatus = status; });
-    _filterAndSearch();
-  }
-
-  void _onSearchChanged(String query) {
-    setState(() { _searchQuery = query; });
-    _filterAndSearch();
-  }
-
-  void _onSelectAll(bool? selected) {
-    setState(() {
-      _selectedPurchaseIds = (selected ?? false)
-          ? _filteredPurchases.map((o) => o.id).toSet()
-          : {};
-    });
-  }
-
-  void _onSelectRow(String orderId, bool? selected) {
-    setState(() {
-      if (selected ?? false) {
-        _selectedPurchaseIds.add(orderId);
-      } else {
-        _selectedPurchaseIds.remove(orderId);
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: Row(
-        children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'my_purchases'),
-
-          // --- Main Content ---
-          //
-          // --- THIS IS THE LAYOUT FIX ---
-          //
-          Expanded(
-            // We use a Column to lay out the header and the table
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Header & Filters (This is the top white box) ---
-                  Container(
-                    padding: const EdgeInsets.all(16),
+    return BlocConsumer<RetailerCubit, RetailerState>(
+      listener: (context, state) {
+        if (state is RetailerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state is RetailerLoading) return const Center(child: CircularProgressIndicator());
+        
+        if (state is RetailerLoaded) {
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "My Purchases (From Wholesalers)", 
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: Container(
+                    // Dark Mode Friendly Background
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      color: Theme.of(context).colorScheme.secondary, 
+                      borderRadius: BorderRadius.circular(8)
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, 
-                      children: [
-                        const Text(
-                          'My Purchases',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
-                        ReusableSearchBar(
-                          hintText: 'Search by Order ID, Wholesaler ID...',
-                          onChanged: _onSearchChanged,
-                        ),
-                        const SizedBox(height: 16),
-                        StatusFilterChips(
-                          filters: _filters,
-                          selectedFilter: _selectedStatus,
-                          onSelected: _onStatusSelected,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24), // Space between boxes
+                    child: state.myPurchases.isEmpty 
+                    ? const Center(child: Text("No purchases found.", style: TextStyle(color: Colors.white)))
+                    : ListView.separated(
+                      itemCount: state.myPurchases.length,
+                      separatorBuilder: (_,__) => const Divider(color: Colors.white24),
+                      itemBuilder: (context, index) {
+                        final order = state.myPurchases[index];
+                        
+                        // Check statuses
+                        final bool isCompleted = order.orderStatus.toLowerCase() == 'completed' || 
+                                                 order.orderStatus.toLowerCase() == 'delivered';
+                        
+                        final String displayId = order.id.length > 5 ? order.id.substring(0, 5) : order.id;
 
-                  // --- Purchases Table (This is the bottom white box) ---
-                  //
-                  // This Expanded widget forces the container
-                  // and table to fill ALL remaining empty space.
-                  //
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      // This container gives the ReusableOrderTable a fixed
-                      // height, which allows its internal vertical scrolling
-                      // to work without errors.
-                      child: ReusableOrderTable(
-                        orders: _filteredPurchases,
-                        selectedOrderIds: _selectedPurchaseIds,
-                        onSelectAll: _onSelectAll,
-                        onSelectRow: _onSelectRow,
-                        showCustomerIdColumn: true,
-                        customerColumnTitle: "Wholesaler ID", 
-                      ),
+                        return ListTile(
+                          title: Text("Order #$displayId", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          subtitle: Text("Status: ${order.orderStatus} | Total: \$${order.total}", style: const TextStyle(color: Colors.white70)),
+                          trailing: _buildTrailingWidget(context, order, isCompleted),
+                        );
+                      },
                     ),
                   ),
-                ],
-              ),
+                )
+              ],
             ),
-          ),
-        ],
-      ),
+          );
+        }
+        return const SizedBox();
+      },
+    );
+  }
+
+  Widget _buildTrailingWidget(BuildContext context, OrderModel order, bool isCompleted) {
+    // 1. If stock is added (automatically or manually), show Green Chip
+    if (order.inventoryAdded) {
+      return const Chip(
+        avatar: Icon(Icons.check, size: 16, color: Colors.white),
+        label: Text("Stock Added"),
+        backgroundColor: Colors.green,
+        labelStyle: TextStyle(color: Colors.white),
+      );
+    }
+
+    // 2. If Completed but NOT added (Auto-logic might be processing, or failed), show Manual Button
+    if (isCompleted) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+        onPressed: () {
+          context.read<RetailerCubit>().receiveOrderToInventory(order);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Retrying Stock Update...")));
+        },
+        child: const Text("Force Add Stock", style: TextStyle(color: Colors.white)),
+      );
+    }
+
+    // 3. Otherwise (Pending/Processing), just show status
+    return Chip(
+      label: Text(order.orderStatus),
+      backgroundColor: Colors.black26,
+      labelStyle: const TextStyle(color: Colors.white),
     );
   }
 }

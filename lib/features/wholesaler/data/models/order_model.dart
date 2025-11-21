@@ -7,6 +7,7 @@ class OrderModel {
   final double total;
   final String deliveryAddress;
   final String orderStatus;
+  final bool inventoryAdded; // <--- THIS IS CRITICAL
 
   OrderModel({
     required this.id,
@@ -15,6 +16,7 @@ class OrderModel {
     required this.total,
     required this.deliveryAddress,
     required this.orderStatus,
+    this.inventoryAdded = false, // Default to false
   });
 
   factory OrderModel.fromJson(String id, Map<String, dynamic> json) {
@@ -47,6 +49,8 @@ class OrderModel {
       total: totalValue,
       deliveryAddress: json['deliveryaddress'] ?? 'Unknown Address',
       orderStatus: normalizedStatus,
+      // ** CRITICAL MAPPING **
+      inventoryAdded: json['inventoryAdded'] ?? false, 
     );
   }
 
@@ -58,6 +62,14 @@ class OrderModel {
       case 'Shipped': return Colors.purple;
       case 'Cancelled': return Colors.red;
       default: return Colors.orange;
+    }
+  }
+  
+  String get formattedOrderTime {
+    try {
+      return DateTime.parse(orderTime).toLocal().toString().substring(0, 16);
+    } catch (e) {
+      return orderTime;
     }
   }
 }
