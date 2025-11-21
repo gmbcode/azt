@@ -5,6 +5,7 @@ class SummaryCard extends StatelessWidget{
      final double fontsize;
     final String text;
     final String value;
+    final bool compact; // New parameter for mobile view
 
     const SummaryCard({
       super.key,
@@ -12,13 +13,15 @@ class SummaryCard extends StatelessWidget{
       required this.color,
       required this.text,
       required this.value,
-
+      this.compact = false, // Default to false (Desktop size)
     });
 
+    @override 
     Widget build(BuildContext context){
       return Container(
-        height: 175,
-        padding: const EdgeInsets.all(25),
+        // Reduce height and padding if compact is true
+        height: compact ? 100 : 175, 
+        padding: EdgeInsets.all(compact ? 15 : 25),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(12),
@@ -26,32 +29,28 @@ class SummaryCard extends StatelessWidget{
       child: (
         Column(
           mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start, // Align text to start
           children :[
             Text(
               text,
-              style: const TextStyle(
-              fontSize: 22,
-              color: Colors.white70, // Slightly lighter color for the title
+              style: TextStyle(
+              fontSize: compact ? 16 : 22, // Smaller font for title
+              color: Colors.white70, 
             ),
             ),
 
-            const SizedBox(height: 20),
+            SizedBox(height: compact ? 8 : 20), // Smaller spacing
 
             Text(
               value,
               style: TextStyle(
-              fontSize: fontsize, // Larger, bold font for the value
+              fontSize: compact ? 30 : fontsize, // Smaller font for value
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),),
           ]
         )
       )
-
-
       );
     }
-
-
-
 }

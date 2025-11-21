@@ -34,6 +34,23 @@ class _WholesalerHomePageState extends State<WholesalerHomePage> {
     });
   }
 
+  // Helper to convert page name to a readable title for the AppBar
+  String _getPageTitle(String pageName) {
+    switch (pageName) {
+      case 'browse_products': return 'Browse Products';
+      case 'my_purchases': return 'My Purchases';
+      case 'my_inventory': return 'My Inventory';
+      case 'listings': return 'My Listings';
+      case 'customer_orders': return 'Customer Orders';
+      case 'customers': return 'My Customers';
+      case 'retailers': return 'Retailers';
+      case 'orders': return 'Orders';
+      case 'inventory': return 'Inventory';
+      case 'dashboard':
+      default: return 'Dashboard';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String uid = '';
@@ -51,35 +68,63 @@ class _WholesalerHomePageState extends State<WholesalerHomePage> {
         child: Theme(
           data: AppTheme.lightTheme, // Use 'AppTheme.darkTheme' here if you prefer the dark version
           
-          child: Scaffold(
-            // Scaffold background is now controlled by AppTheme
-            body: Row(
-              children: [
-                MainSidebar(
-                  selectedPage: _currentPage,
-                  onPageChanged: _onPageChanged,
-                ),
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      switch (_currentPage) {
-                        case 'inventory':
-                          return const InventoryPage();
-                        case 'listings':
-                          return const ListingsPage();
-                        case 'orders':
-                          return const OrdersPage();
-                        case 'retailers':
-                          return const RetailersPage();
-                        case 'dashboard':
-                        default:
-                          return const wholeSalerDashboardpage();
-                      }
-                    },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Check if screen width is above a mobile threshold
+              final isDesktop = constraints.maxWidth > 800; 
+              
+              Widget currentContent;
+              switch (_currentPage) {
+                case 'inventory':
+                  currentContent = const InventoryPage();
+                  break;
+                case 'listings':
+                  currentContent = const ListingsPage();
+                  break;
+                case 'orders':
+                  currentContent = const OrdersPage();
+                  break;
+                case 'retailers':
+                  currentContent = const RetailersPage();
+                  break;
+                case 'dashboard':
+                default:
+                  currentContent = const wholeSalerDashboardpage();
+                  break;
+              }
+              
+              if (isDesktop) {
+                // Desktop Layout (Row with fixed sidebar)
+                return Scaffold( // Wrapped in Scaffold for safety, but main structure is Row
+                  body: Row(
+                    children: [
+                      MainSidebar(
+                        selectedPage: _currentPage,
+                        onPageChanged: _onPageChanged,
+                      ),
+                      Expanded(child: currentContent),
+                    ],
                   ),
-                ),
-              ],
-            ),
+                );
+              } else {
+                // Mobile Layout (Scaffold with Drawer)
+                return Scaffold(
+                  appBar: AppBar(
+                    title: Text(_getPageTitle(_currentPage)), // Display current page name
+                  ),
+                  drawer: Drawer(
+                    child: MainSidebar(
+                      selectedPage: _currentPage,
+                      onPageChanged: (pageName) {
+                        _onPageChanged(pageName);
+                        Navigator.of(context).pop(); // Close drawer after selection
+                      },
+                    ),
+                  ),
+                  body: currentContent,
+                );
+              }
+            },
           ),
         ),
       ),

@@ -49,6 +49,11 @@ class _OrdersPageState extends State<OrdersPage> {
     }
     setState(() => _selectionMap.clear());
   }
+  
+  void _onOrderSelectionChanged(String id, bool val) {
+    setState(() => _selectionMap[id] = val);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -65,11 +70,14 @@ class _OrdersPageState extends State<OrdersPage> {
           final surfaceColor = Theme.of(context).colorScheme.surface;
           final primaryColor = Theme.of(context).primaryColor;
           final borderColor = Theme.of(context).dividerColor;
+          
+          // Corrected the syntax here
+          final isMobile = MediaQuery.of(context).size.width < 600;
 
           return Padding(
-            padding: const EdgeInsets.all(24),
+            padding:  EdgeInsets.all(isMobile ? 16 : 24),
             child: Container(
-              padding: const EdgeInsets.all(30),
+              padding: isMobile ? const EdgeInsets.all(15) : const EdgeInsets.all(30), // Reduced padding for mobile
               decoration: BoxDecoration(
                 color: surfaceColor, // Dynamic Surface Color
                 borderRadius: BorderRadius.circular(10),
@@ -89,36 +97,55 @@ class _OrdersPageState extends State<OrdersPage> {
                   ),
                   const SizedBox(height: 20),
                   
-                  OrderSearchBar(onSearch: (val) => setState(() => _searchTerm = val)),
+                  // Mobile Search Bar is full width
+                  SizedBox(
+                    width: isMobile ? double.infinity : 300, 
+                    child: OrderSearchBar(onSearch: (val) => setState(() => _searchTerm = val))
+                  ),
                   const SizedBox(height: 20),
                   
                   Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: borderColor), // Dynamic Border
-                        borderRadius: BorderRadius.circular(8),
+                    child: isMobile
+                      ? ListView.builder( // Mobile List View (Clean Cards)
+                          itemCount: currentOrders.length,
+                          itemBuilder: (context, index) {
+                            final order = currentOrders[index];
+                            final isSelected = _selectionMap[order.id] ?? false;
+                            
+                            return MobileOrderCard(
+                              order: order, 
+                              isSelected: isSelected,
+                              onSelect: (val) => _onOrderSelectionChanged(order.id, val ?? false),
+                            );
+                          },
+                        )
+                      : Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: borderColor), // Dynamic Border
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        // Desktop: Use DataTable with horizontal scroll
+                        child: OrderTable(
+                          orders: currentOrders,
+                          selectionMap: _selectionMap,
+                          onOrderSelectionChanged: _onOrderSelectionChanged,
+                          onSelectAll: (val) => _onSelectAll(currentOrders, val),
+                          allSelected: allSelected,
+                        ),
                       ),
-                      child: OrderTable(
-                        orders: currentOrders,
-                        selectionMap: _selectionMap,
-                        onOrderSelectionChanged: (id, val) => setState(() => _selectionMap[id] = val),
-                        onSelectAll: (val) => _onSelectAll(currentOrders, val),
-                        allSelected: allSelected,
-                      ),
-                    ),
                   ),
                   
                   const SizedBox(height: 20),
                   if (hasSelected)
-                    Row(
+                    Wrap( // Use Wrap for responsive bulk actions
+                      spacing: 10,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text("Bulk Action: ", style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
-                        const SizedBox(width: 10),
                         ElevatedButton(onPressed: () => _updateStatusForSelected(context, 'Processing'), child: const Text("Mark Processing")),
-                        const SizedBox(width: 10),
                         ElevatedButton(onPressed: () => _updateStatusForSelected(context, 'Shipped'), child: const Text("Mark Shipped")),
-                        const SizedBox(width: 10),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.green), 
                           onPressed: () => _updateStatusForSelected(context, 'Completed'), 
@@ -133,6 +160,82 @@ class _OrdersPageState extends State<OrdersPage> {
         }
         return const SizedBox();
       },
+    );
+  }
+}
+
+
+// --- NEW MOBILE ORDER CARD WIDGET ---
+class MobileOrderCard extends StatelessWidget {
+  final OrderModel order;
+  final bool isSelected;
+  final ValueChanged<bool?> onSelect;
+
+  const MobileOrderCard({
+    super.key,
+    required this.order,
+    required this.isSelected,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    "Order ID: ${order.id.substring(0, 5)}...",
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                Text(
+                  "\$${order.total.toStringAsFixed(2)}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+              ],
+            ),
+            const Divider(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Customer: ${order.customerId}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 4),
+                    Text("Time: ${order.formattedOrderTime}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Chip(
+                      label: Text(
+                        order.orderStatus,
+                        style: const TextStyle(color: Colors.white, fontSize: 11),
+                      ),
+                      backgroundColor: order.statusColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    ),
+                    Checkbox(
+                      value: isSelected,
+                      onChanged: onSelect,
+                    )
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

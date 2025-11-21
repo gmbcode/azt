@@ -10,7 +10,8 @@ class OrderSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // The width is controlled by the parent widget for responsiveness
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), // Compact internal padding
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -22,6 +23,7 @@ class OrderSearchBar extends StatelessWidget {
           icon: Icon(Icons.search, color: Colors.grey),
           hintText: 'Search by Order ID, Customer...',
           border: InputBorder.none,
+          isDense: true, // Makes the TextField more compact
         ),
       ),
     );

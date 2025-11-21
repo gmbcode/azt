@@ -17,6 +17,9 @@ class _InventoryPageState extends State<InventoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    
     return BlocBuilder<WholesalerCubit, WholesalerState>(
       builder: (context, state) {
         if (state is WholesalerLoading) return const Center(child: CircularProgressIndicator());
@@ -30,23 +33,47 @@ class _InventoryPageState extends State<InventoryPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Inventory", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text("Add Product", style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.secondary, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => AddProductDialog(
-                          onAddProduct: (data) => context.read<WholesalerCubit>().addProduct(data),
+                // START: Responsive Header (Title + Button)
+                isMobile 
+                ? Column( // Stacked vertically on mobile
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Inventory", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                      const SizedBox(height: 15),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.add, color: Colors.white),
+                          label: const Text("Add Product", style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.secondary, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
+                          onPressed: () => showDialog(
+                            context: context,
+                            builder: (_) => AddProductDialog(
+                              onAddProduct: (data) => context.read<WholesalerCubit>().addProduct(data),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  )
+                : Row( // Side-by-side on desktop
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Inventory", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        label: const Text("Add Product", style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.secondary, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
+                        onPressed: () => showDialog(
+                          context: context,
+                          builder: (_) => AddProductDialog(
+                            onAddProduct: (data) => context.read<WholesalerCubit>().addProduct(data),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                // END: Responsive Header
                 const SizedBox(height: 20),
                 TextField(
                   controller: _searchController,
@@ -81,9 +108,14 @@ class _InventoryPageState extends State<InventoryPage> {
                             children: [
                               if (!item.isListed)
                                 ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                  // Compact button for mobile view
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    padding: isMobile ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4) : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    textStyle: TextStyle(fontSize: isMobile ? 12 : 14)
+                                  ),
                                   onPressed: () => _showListDialog(context, item),
-                                  child: const Text("List Item", style: TextStyle(color: Colors.white)),
+                                  child: Text(isMobile ? "List" : "List Item", style: const TextStyle(color: Colors.white)),
                                 )
                               else
                                 const Chip(label: Text("Listed", style: TextStyle(color: Colors.green))),

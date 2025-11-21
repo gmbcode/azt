@@ -27,18 +27,20 @@ class RetailerHomePage extends StatefulWidget {
 }
 
 class _RetailerHomePageState extends State<RetailerHomePage> {
-  // State to track which page is currently visible
   String _currentPage = 'dashboard';
 
   void _onPageChanged(String pageName) {
     setState(() {
       _currentPage = pageName;
     });
+    // If on mobile (drawer is open), close it
+    if (Scaffold.of(context).isDrawerOpen) {
+      Navigator.pop(context); 
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get User UID
     String uid = '';
     final authState = context.read<AuthCubit>().state;
     if (authState is Authenticated) {
@@ -48,43 +50,67 @@ class _RetailerHomePageState extends State<RetailerHomePage> {
     return RepositoryProvider(
       create: (context) => RetailerRepo(),
       child: BlocProvider(
-        // Create the Cubit ONCE at the top level of the Retailer Home
         create: (context) => RetailerCubit(context.read<RetailerRepo>(), uid),
-        child: Scaffold(
-          body: Row(
-            children: [
-              // Sidebar stays persistent
-              RetailerMainSidebar(
-                selectedPage: _currentPage,
-                onPageChanged: _onPageChanged,
-              ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isMobile = constraints.maxWidth < 800;
+
+            return Scaffold(
+              appBar: isMobile 
+                ? AppBar(
+                    title: const Text("Retailer Portal"),
+                    backgroundColor: Theme.of(context).primaryColor,
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.logout),
+                        onPressed: () => context.read<AuthCubit>().logout(),
+                      )
+                    ],
+                  )
+                : null,
               
-              // Content area swaps widgets based on state
-              Expanded(
-                child: Builder(
-                  builder: (context) {
-                    switch (_currentPage) {
-                      case 'browse_products':
-                        return const RetailerBrowseProductsPage();
-                      case 'my_purchases':
-                        return const RetailerMyPurchasesPage();
-                      case 'my_inventory':
-                        return const RetailerMyInventoryPage();
-                      case 'listings':
-                        return const RetailerListingsPage();
-                      case 'customer_orders':
-                        return const RetailerCustomerOrdersPage();
-                      case 'customers':
-                        return const RetailerCustomersPage();
-                      case 'dashboard':
-                      default:
-                        return const RetailerDashboardPage();
-                    }
-                  },
-                ),
+              // Use Drawer on Mobile
+              drawer: isMobile 
+                ? Drawer(
+                    child: RetailerMainSidebar(
+                      selectedPage: _currentPage,
+                      onPageChanged: (page) {
+                        setState(() => _currentPage = page);
+                        Navigator.pop(context); // Close Drawer
+                      },
+                    ),
+                  ) 
+                : null,
+
+              body: Row(
+                children: [
+                  // Sidebar only on Desktop
+                  if (!isMobile)
+                    RetailerMainSidebar(
+                      selectedPage: _currentPage,
+                      onPageChanged: _onPageChanged,
+                    ),
+                  
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        switch (_currentPage) {
+                          case 'browse_products': return const RetailerBrowseProductsPage();
+                          case 'my_purchases': return const RetailerMyPurchasesPage();
+                          case 'my_inventory': return const RetailerMyInventoryPage();
+                          case 'listings': return const RetailerListingsPage();
+                          case 'customer_orders': return const RetailerCustomerOrdersPage();
+                          case 'customers': return const RetailerCustomersPage();
+                          case 'dashboard':
+                          default: return const RetailerDashboardPage();
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          }
         ),
       ),
     );

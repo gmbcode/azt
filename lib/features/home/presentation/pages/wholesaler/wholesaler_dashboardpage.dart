@@ -13,8 +13,6 @@ class wholeSalerDashboardpage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // REMOVED: Scaffold, Row, MainSidebar
-    // ADDED: Direct BlocBuilder returning the content
     return BlocBuilder<WholesalerCubit, WholesalerState>(
       builder: (context, state) {
         if (state is WholesalerLoading) {
@@ -31,30 +29,51 @@ class wholeSalerDashboardpage extends StatelessWidget {
            final recentOrders = state.orders.take(5).toList();
 
            return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Dashboard", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  Row(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Use 800px as the breakpoint for the desktop view
+                final isDesktop = constraints.maxWidth > 800; 
+                
+                final List<Widget> cards = [
+                  SummaryCard(fontsize: 40, color: const Color(0xFF4CAF50), value: state.pendingOrdersCount.toString(), text: "Pending Orders", compact: !isDesktop),
+                  SummaryCard(fontsize: 25, color: const Color(0xFF2196F3), value: '\$${state.totalRevenue.toStringAsFixed(0)}', text: "Revenue", compact: !isDesktop),
+                  SummaryCard(fontsize: 35, color: const Color(0xFFF44336), value: lowStockCount.toString(), text: "Low Stock", compact: !isDesktop),
+                  SummaryCard(fontsize: 35, color: const Color(0xFF9C27B0), value: retailerCount.toString(), text: "Retailers", compact: !isDesktop),
+                ];
+                
+                return Padding(
+                  padding:  EdgeInsets.all(isDesktop ? 30 : 16), // Smaller padding for mobile
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: SummaryCard(fontsize: 40, color: const Color(0xFF4CAF50), value: state.pendingOrdersCount.toString(), text: "Pending Orders")),
-                      const SizedBox(width: 20),
-                      Expanded(child: SummaryCard(fontsize: 25, color: const Color(0xFF2196F3), value: '\$${state.totalRevenue.toStringAsFixed(0)}', text: "Revenue")),
-                      const SizedBox(width: 20),
-                      Expanded(child: SummaryCard(fontsize: 35, color: const Color(0xFFF44336), value: lowStockCount.toString(), text: "Low Stock")),
-                      const SizedBox(width: 20),
-                      Expanded(child: SummaryCard(fontsize: 35, color: const Color(0xFF9C27B0), value: retailerCount.toString(), text: "Retailers")),
+                      const Text("Dashboard", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 20),
+                      
+                      // Responsive Summary Cards
+                      isDesktop 
+                        ? Row( // Original desktop layout
+                            children: cards.map((card) => Expanded(child: Padding(padding: const EdgeInsets.only(right: 20.0), child: card))).toList(),
+                          )
+                        : GridView.count( // Mobile grid layout (2 columns)
+                            crossAxisCount: 2,
+                            childAspectRatio: 1.5,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 15, // Reduced spacing
+                            crossAxisSpacing: 15,
+                            children: cards,
+                          ),
+                      
+                      const SizedBox(height: 30),
+                      const Text("Recent Orders", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 15),
+                      
+                      // Recent Orders Table is horizontally scrollable on mobile, which is acceptable for a table
+                      RecentOrdersTable(orders: recentOrders),
                     ],
                   ),
-                  const SizedBox(height: 30),
-                  const Text("Recent Orders", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  RecentOrdersTable(orders: recentOrders),
-                ],
-              ),
+                );
+              }
             ),
           );
         }
