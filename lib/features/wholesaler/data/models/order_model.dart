@@ -7,6 +7,8 @@ class OrderModel {
   final double total;
   final String deliveryAddress;
   final String orderStatus;
+  final bool inventoryAdded;
+  final List<dynamic> items; // Added field
 
   OrderModel({
     required this.id,
@@ -15,11 +17,17 @@ class OrderModel {
     required this.total,
     required this.deliveryAddress,
     required this.orderStatus,
+    this.inventoryAdded = false,
+    this.items = const [], 
   });
 
   factory OrderModel.fromJson(String id, Map<String, dynamic> json) {
+    // Robust ID parsing
     String customerId = json['orderbyid']?.split('/').first ?? 'N/A';
+    if (json.containsKey('customer_uid')) customerId = json['customer_uid'];
+    if (json.containsKey('retailer_uid')) customerId = json['retailer_uid'];
     
+    // Robust Total parsing
     double totalValue = 0.0;
     if (json['total'] is num) {
       totalValue = (json['total'] as num).toDouble();
@@ -27,18 +35,13 @@ class OrderModel {
       totalValue = double.tryParse(json['total']!) ?? 0.0;
     }
     
-    // Normalize status
+    // Status Normalization
     String status = json['status']?.toString().toLowerCase() ?? 'pending';
     String normalizedStatus = 'Pending';
-    if (status.contains('delivered') || status.contains('completed')) {
-      normalizedStatus = 'Completed';
-    } else if (status.contains('confirmed') || status.contains('processing')) {
-      normalizedStatus = 'Processing';
-    } else if (status.contains('shipped')) {
-      normalizedStatus = 'Shipped';
-    } else if (status.contains('cancelled')) {
-      normalizedStatus = 'Cancelled';
-    }
+    if (status.contains('delivered') || status.contains('completed')) normalizedStatus = 'Completed';
+    else if (status.contains('confirmed') || status.contains('processing')) normalizedStatus = 'Processing';
+    else if (status.contains('shipped')) normalizedStatus = 'Shipped';
+    else if (status.contains('cancelled')) normalizedStatus = 'Cancelled';
 
     return OrderModel(
       id: id,
@@ -47,10 +50,11 @@ class OrderModel {
       total: totalValue,
       deliveryAddress: json['deliveryaddress'] ?? 'Unknown Address',
       orderStatus: normalizedStatus,
+      inventoryAdded: json['inventoryAdded'] ?? false,
+      items: json['items'] ?? [], // Parsing the items list
     );
   }
 
-  // Helper for UI colors
   Color get statusColor {
     switch (orderStatus) {
       case 'Completed': return Colors.green;
@@ -58,6 +62,14 @@ class OrderModel {
       case 'Shipped': return Colors.purple;
       case 'Cancelled': return Colors.red;
       default: return Colors.orange;
+    }
+  }
+  
+  String get formattedOrderTime {
+    try {
+      return DateTime.parse(orderTime).toLocal().toString().substring(0, 16);
+    } catch (e) {
+      return orderTime;
     }
   }
 }

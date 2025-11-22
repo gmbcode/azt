@@ -46,7 +46,11 @@ class _RetailersPageState extends State<RetailersPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text("Retailers", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor)),
-                      RetailerSearchBar(onSearch: (term) => setState(() => _searchTerm = term)),
+                      const SizedBox(width: 10),
+                      // Flexible prevents overflow
+                      Flexible(
+                        child: RetailerSearchBar(onSearch: (term) => setState(() => _searchTerm = term)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -64,7 +68,6 @@ class _RetailersPageState extends State<RetailersPage> {
                       itemBuilder: (context, index) {
                         final retailer = filteredRetailers[index];
                         return Card(
-                          // Card color is handled by Theme.cardTheme automatically
                           elevation: 2,
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -73,7 +76,7 @@ class _RetailersPageState extends State<RetailersPage> {
                               children: [
                                 CircleAvatar(
                                   radius: 30, 
-                                  backgroundColor: secondaryColor.withOpacity(0.1), // Light accent bg
+                                  backgroundColor: secondaryColor.withOpacity(0.1),
                                   child: Icon(Icons.store, color: secondaryColor, size: 30)
                                 ),
                                 const SizedBox(height: 10),
@@ -88,22 +91,7 @@ class _RetailersPageState extends State<RetailersPage> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)
                                 ),
-                                const Spacer(),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      side: BorderSide(color: secondaryColor),
-                                      foregroundColor: secondaryColor,
-                                    ),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text("Details for ${retailer.businessName}"))
-                                      );
-                                    }, 
-                                    child: const Text("View Profile")
-                                  ),
-                                )
+                                // Removed "View Profile" Button as requested
                               ],
                             ),
                           ),

@@ -1,115 +1,66 @@
-import 'package:azt/features/home/presentation/pages/retailer/retailer_customers_page.dart' show RetailerCustomersPage;
 import 'package:flutter/material.dart';
-
-// Import your custom sidebar item
-import '../pages/retailer/retailer_browse_products_page.dart';
-import '../pages/retailer/retailer_customer_orders_page.dart';
-import '../pages/retailer/retailer_my_inventory_page.dart';
-import '../pages/retailer/retailer_my_purchases_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/presentation/cubits/auth_cubit.dart';
 import 'retailer_sidebar_item.dart';
-import '../pages/retailer/retailer_dashboard_page.dart';
-
-// --- IMPORTANT ---
-// You MUST create these page files inside a 'pages' folder
-
 
 class RetailerMainSidebar extends StatelessWidget {
   final String selectedPage;
+  final ValueChanged<String> onPageChanged;
 
   const RetailerMainSidebar({
     super.key,
     required this.selectedPage,
+    required this.onPageChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    void navigateTo(Widget page) {
-      Navigator.pushReplacement(
-        context,
-        // Using a simple fade transition
-        PageRouteBuilder(
-          pageBuilder: (context, anim1, anim2) => page,
-          transitionDuration: Duration.zero,
-        ),
-      );
-    }
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      width: 250,
-      color: const Color.fromARGB(255, 2, 18, 37),
+      width: 260,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark 
+            ? [const Color(0xFF1E1E2C), const Color(0xFF2D2D44)] 
+            : [Colors.blue.shade900, Colors.blue.shade800],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 60,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerLeft,
-            color: const Color.fromARGB(255, 2, 18, 37),
-            // Changed icon to reflect a "store"
-            child: const Icon(Icons.storefront, color: Colors.white, size: 30),
+          const SizedBox(height: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                const Icon(Icons.store, color: Colors.white, size: 32),
+                const SizedBox(width: 12),
+                const Text("Retailer Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-
-          // Dashboard
-          SidebarItem(
-            icon: Icons.dashboard,
-            text: 'Dashboard',
-            isSelected: selectedPage == 'dashboard',
-            onTap: selectedPage == 'dashboard'
-                ? null
-                : () => navigateTo(const RetailerDashboardPage()),
+          const SizedBox(height: 30),
+          const Divider(color: Colors.white12, height: 1),
+          
+          SidebarItem(icon: Icons.dashboard_outlined, text: 'Dashboard', isSelected: selectedPage == 'dashboard', onTap: () => onPageChanged('dashboard')),
+          SidebarItem(icon: Icons.search, text: "Browse Wholesalers", isSelected: selectedPage == 'browse_products', onTap: () => onPageChanged('browse_products')),
+          SidebarItem(icon: Icons.shopping_cart_outlined, text: "My Purchases", isSelected: selectedPage == 'my_purchases', onTap: () => onPageChanged('my_purchases')),
+          SidebarItem(icon: Icons.inventory_2_outlined, text: "My Inventory", isSelected: selectedPage == 'my_inventory', onTap: () => onPageChanged('my_inventory')),
+          SidebarItem(icon: Icons.list_alt, text: "My Listings", isSelected: selectedPage == 'listings', onTap: () => onPageChanged('listings')),
+          SidebarItem(icon: Icons.assignment_outlined, text: "Customer Orders", isSelected: selectedPage == 'customer_orders', onTap: () => onPageChanged('customer_orders')),
+          SidebarItem(icon: Icons.people_outline, text: "My Customers", isSelected: selectedPage == 'customers', onTap: () => onPageChanged('customers')),
+          
+          const Spacer(),
+          const Divider(color: Colors.white12),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            onTap: () => context.read<AuthCubit>().logout(),
           ),
-
-          // Browse Products (Store)
-          SidebarItem(
-            icon: Icons.store,
-            text: "Browse Products",
-            isSelected: selectedPage == 'browse_products',
-            onTap: selectedPage == 'browse_products'
-                ? null
-                : () => navigateTo(const RetailerBrowseProductsPage()),
-          ),
-
-          // My Purchases (from Wholesaler)
-          SidebarItem(
-            icon: Icons.receipt_long,
-            text: "My Purchases",
-            isSelected: selectedPage == 'my_purchases',
-            onTap: selectedPage == 'my_purchases'
-                ? null
-                : () => navigateTo(const RetailerMyPurchasesPage()),
-          ),
-
-          // My Inventory (for my Customers)
-          SidebarItem(
-            icon: Icons.inventory_2,
-            text: "My Inventory",
-            isSelected: selectedPage == 'my_inventory',
-            onTap: selectedPage == 'my_inventory'
-                ? null
-                : () => navigateTo(const RetailerMyInventoryPage()),
-          ),
-
-          // Customer Orders
-          SidebarItem(
-            icon: Icons.shopping_bag,
-            text: "Customer Orders",
-            isSelected: selectedPage == 'customer_orders',
-            onTap: selectedPage == 'customer_orders'
-                ? null
-                : () => navigateTo(const RetailerCustomerOrdersPage()),
-          ),
-
-          // Customers
-          SidebarItem(
-            icon: Icons.group,
-            text: "Customers",
-            isSelected: selectedPage == 'customers',
-            onTap: selectedPage == 'customers'
-                ? null
-                : () => navigateTo(const RetailerCustomersPage()),
-          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

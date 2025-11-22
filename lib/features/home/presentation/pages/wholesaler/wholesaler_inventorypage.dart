@@ -75,10 +75,16 @@ class _InventoryPageState extends State<InventoryPage> {
                             child: const Icon(Icons.inventory_2, color: Colors.orange),
                           ),
                           title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text("Category: ${item.category} | Stock: ${item.stock} | Price: \$${item.price}"),
+                          subtitle: Text("Stock: ${item.stock} | Price: \$${item.price} | MOQ: ${item.moq}"),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // EDIT BUTTON
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _showEditDialog(context, item),
+                              ),
+                              const SizedBox(width: 8),
                               if (!item.isListed)
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -108,6 +114,7 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
+  // --- LOGIC: List Item ---
   void _showListDialog(BuildContext context, WholesalerInventoryItem item) {
     final qtyController = TextEditingController();
     showDialog(
@@ -127,9 +134,59 @@ class _InventoryPageState extends State<InventoryPage> {
               if (qty != null && qty > 0 && qty <= item.stock) {
                 context.read<WholesalerCubit>().listProduct(item, qty);
                 Navigator.pop(ctx);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid Quantity")));
               }
             }, 
             child: const Text("Confirm")
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- LOGIC: Edit Item ---
+  void _showEditDialog(BuildContext context, WholesalerInventoryItem item) {
+    final nameCtrl = TextEditingController(text: item.name);
+    final priceCtrl = TextEditingController(text: item.price.toString());
+    final stockCtrl = TextEditingController(text: item.stock.toString());
+    
+    // Note: We need to access the repo to update. Ideally, add updateProduct to Cubit.
+    // For now, I'll assume you added `updateProduct` to WholesalerCubit in step 4 below.
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Edit Product"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Name")),
+            TextField(controller: priceCtrl, decoration: const InputDecoration(labelText: "Price"), keyboardType: TextInputType.number),
+            TextField(controller: stockCtrl, decoration: const InputDecoration(labelText: "Stock"), keyboardType: TextInputType.number),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              final updatedItem = WholesalerInventoryItem(
+                id: item.id,
+                name: nameCtrl.text,
+                category: item.category,
+                price: double.tryParse(priceCtrl.text) ?? item.price,
+                stock: int.tryParse(stockCtrl.text) ?? item.stock,
+                moq: item.moq,
+                description: item.description,
+                imageUrl: item.imageUrl,
+                isListed: item.isListed,
+                listingId: item.listingId,
+              );
+              // TRIGGER CUBIT UPDATE (Requires update in Cubit)
+              context.read<WholesalerCubit>().updateProduct(updatedItem);
+              Navigator.pop(ctx);
+            },
+            child: const Text("Save"),
           ),
         ],
       ),

@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-
 import '../../../wholesaler/data/models/order_model.dart';
-
-// IMPORT THE NEW MODEL
 
 class OrderTable extends StatelessWidget {
   final List<OrderModel> orders;
@@ -49,7 +46,8 @@ class OrderTable extends StatelessWidget {
                     DataCell(Text(order.id)),
                     DataCell(Text(order.customerId)),
                     DataCell(Text(order.orderTime.length > 10 ? order.orderTime.substring(0, 10) : order.orderTime)),
-                    DataCell(Text('\$${order.total.toStringAsFixed(2)}')),
+                    // Rupee Symbol Fix
+                    DataCell(Text('₹${order.total.toStringAsFixed(2)}')),
                     DataCell(
                       Chip(
                         label: Text(
