@@ -1,10 +1,16 @@
-
-
-import 'package:azt/features/home/presentation/pages/wholesaler/wholesaler_dashboardpage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import '../../../../../../theme/app_theme.dart'; 
 import '../../../../auth/presentation/cubits/auth_cubit.dart';
+import '../../../../auth/presentation/cubits/auth_states.dart';
+import '../../../../wholesaler/data/repos/wholesaler_repo.dart';
+import '../../../../wholesaler/presentation/cubits/wholesaler_cubit.dart';
+import '../../wholesaler_widgets/wholesaler_Main_sidebar.dart'; 
+import 'wholesaler_dashboardpage.dart';
+import 'wholesaler_inventorypage.dart';
+import 'wholesaler_listings.dart';
+import 'wholesaler_orders.dart';
+import 'wholesaler_retailers.dart';
 
 class WholesalerHomePage extends StatefulWidget {
   const WholesalerHomePage({super.key});
@@ -14,98 +20,91 @@ class WholesalerHomePage extends StatefulWidget {
 }
 
 class _WholesalerHomePageState extends State<WholesalerHomePage> {
-  // Track current page if dashboard has multiple sections
-  int _currentIndex = 0;
+  String _currentPage = 'dashboard';
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _onPageChanged(String pageName) {
+    setState(() => _currentPage = pageName);
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        title: const Text("Wholesaler Hub"),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        actions: [
-          // Logout button - always visible
-          IconButton(
-            onPressed: () {
-              // Show confirmation dialog
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to logout?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        final authCubit = context.read<AuthCubit>();
-                        authCubit.logout();
-                      },
-                      child: const Text('Logout'),
+    String uid = '';
+    final authState = context.read<AuthCubit>().state;
+    if (authState is Authenticated) uid = authState.user.uid;
+
+    return RepositoryProvider(
+      create: (context) => WholesalerRepo(),
+      child: BlocProvider(
+        create: (context) => WholesalerCubit(context.read<WholesalerRepo>(), uid),
+        child: Theme(
+          data: AppTheme.lightTheme,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isDesktop = constraints.maxWidth > 800;
+              
+              return Scaffold(
+                key: _scaffoldKey,
+                appBar: !isDesktop
+                  ? AppBar(
+                      title: Text(_getTitle()),
+                      leading: IconButton(
+                        icon: const Icon(Icons.menu),
+                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      ),
+                      actions: [
+                        IconButton(
+                          icon: const Icon(Icons.logout),
+                          onPressed: () => context.read<AuthCubit>().logout(),
+                        )
+                      ],
+                    )
+                  : null,
+                drawer: !isDesktop 
+                  ? MainSidebar(selectedPage: _currentPage, onPageChanged: _onPageChanged)
+                  : null,
+                body: Row(
+                  // FIX: This line prevents the Sidebar Spacer() from crashing the app
+                  crossAxisAlignment: CrossAxisAlignment.stretch, 
+                  children: [
+                    if (isDesktop)
+                      MainSidebar(selectedPage: _currentPage, onPageChanged: _onPageChanged),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _getPage(),
+                      ),
                     ),
                   ],
                 ),
               );
-            },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+            }
           ),
-        ],
-      ),
-      // Wrap the dashboard in a theme to ensure proper styling
-      body: Theme(
-        data: ThemeData(
-          primarySwatch: Colors.orange,
-          scaffoldBackgroundColor: Colors.grey[200],
-          // Table theme for visibility
-          dataTableTheme: DataTableThemeData(
-            headingRowColor: WidgetStateProperty.all(Colors.orange.shade100),
-            dataRowColor: WidgetStateProperty.all(Colors.white),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 2,
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          textTheme: const TextTheme(
-            headlineMedium: TextStyle(
-                fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
-            titleLarge: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
-            bodyMedium: TextStyle(color: Colors.black87),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-        // Use Navigator to prevent the dashboard from replacing the scaffold
-        child: Navigator(
-          onGenerateRoute: (settings) {
-            return MaterialPageRoute(
-              builder: (context) => const wholeSalerDashboardpage(),
-            );
-          },
         ),
       ),
     );
+  }
+
+  String _getTitle() {
+    switch (_currentPage) {
+      case 'inventory': return 'Inventory';
+      case 'listings': return 'Listings';
+      case 'orders': return 'Orders';
+      case 'retailers': return 'Retailers';
+      default: return 'Dashboard';
+    }
+  }
+
+  Widget _getPage() {
+    switch (_currentPage) {
+      case 'inventory': return const InventoryPage();
+      case 'listings': return const ListingsPage();
+      case 'orders': return const OrdersPage();
+      case 'retailers': return const RetailersPage();
+      case 'dashboard': default: return const wholeSalerDashboardpage();
+    }
   }
 }

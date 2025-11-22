@@ -1,13 +1,7 @@
-// lib/pages/retailers.dart
-
 import 'package:flutter/material.dart';
-
-import '../../wholesaler_models/retailer_model.dart';
-import '../../wholesaler_widgets/wholesaler_Main_sidebar.dart';
-import '../../wholesaler_widgets/wholesaler_retailer_filter_tab.dart';
-import '../../wholesaler_widgets/wholesaler_retailer_grid.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../wholesaler/presentation/cubits/wholesaler_cubit.dart';
 import '../../wholesaler_widgets/wholesaler_retailer_search_bar.dart';
-
 
 class RetailersPage extends StatefulWidget {
   const RetailersPage({super.key});
@@ -17,131 +11,101 @@ class RetailersPage extends StatefulWidget {
 }
 
 class _RetailersPageState extends State<RetailersPage> {
-  // 1. STATE VARIABLES
-  String _selectedTab = 'All Retailers'; // Holds the current filter tab
-  String _searchTerm = ''; // Holds the current search term
-  late List<RetailerModel> _allRetailers; // The full list of retailers
-
-  @override
-  void initState() {
-    super.initState();
-    // Initialize the list of all retailers from the dummy data
-    _allRetailers = dummyRetailerData;
-  }
-
-  // 2. LOGIC TO FILTER RETAILERS
-  List<RetailerModel> _getFilteredRetailers() {
-    // Apply tab filter
-    final tabFiltered = _allRetailers.where((retailer) {
-      if (_selectedTab == 'New Signups') {
-        return retailer.isNewSignup;
-      }
-      return true; // 'All Retailers' tab returns all
-    }).toList();
-
-    // Apply search filter (case-insensitive)
-    if (_searchTerm.isEmpty) {
-      return tabFiltered;
-    }
-
-    final lowerCaseSearchTerm = _searchTerm.toLowerCase();
-    return tabFiltered.where((retailer) {
-      return retailer.businessName.toLowerCase().contains(lowerCaseSearchTerm) ||
-             retailer.address.toLowerCase().contains(lowerCaseSearchTerm);
-    }).toList();
-  }
-
-  // 3. CALLBACK FUNCTIONS (passed to child widgets)
-  void _updateSearchTerm(String newTerm) {
-    setState(() {
-      _searchTerm = newTerm;
-    });
-  }
-
-  void _updateSelectedTab(String newTab) {
-    setState(() {
-      _selectedTab = newTab;
-    });
-  }
-
-  // Helper widget for the bottom pagination controls
-  Widget _buildPaginationControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        IconButton(icon: const Icon(Icons.arrow_back_ios, size: 16), onPressed: () {}),
-        const Text('1'),
-        IconButton(icon: const Icon(Icons.arrow_forward_ios, size: 16), onPressed: () {}),
-      ],
-    );
-  }
+  String _searchTerm = '';
 
   @override
   Widget build(BuildContext context) {
-    final filteredRetailers = _getFilteredRetailers();
+    return BlocBuilder<WholesalerCubit, WholesalerState>(
+      builder: (context, state) {
+        if (state is WholesalerLoading) return const Center(child: CircularProgressIndicator());
+        
+        if (state is WholesalerLoaded) {
+          final filteredRetailers = state.retailers.where((retailer) {
+            final term = _searchTerm.toLowerCase();
+            return retailer.businessName.toLowerCase().contains(term) ||
+                   retailer.address.toLowerCase().contains(term);
+          }).toList();
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100], // Light grey background
-      body: Row(
-        children: [
-          // 1. The Sidebar
-          const MainSidebar(selectedPage: 'retailers'),
+          // Theme Colors
+          final surfaceColor = Theme.of(context).colorScheme.surface;
+          final primaryColor = Theme.of(context).primaryColor;
+          final secondaryColor = Theme.of(context).colorScheme.secondary;
 
-          // 2. The Main Content Area
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Container(
-                padding: const EdgeInsets.all(30),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Row: Title and Search Bar
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Retailers",
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              padding: const EdgeInsets.all(30),
+              decoration: BoxDecoration(
+                color: surfaceColor, // Dynamic Surface
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Retailers", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor)),
+                      const SizedBox(width: 10),
+                      // Flexible prevents overflow
+                      Flexible(
+                        child: RetailerSearchBar(onSearch: (term) => setState(() => _searchTerm = term)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: filteredRetailers.isEmpty 
+                    ? Center(child: Text("No retailers found.", style: TextStyle(color: Theme.of(context).hintColor)))
+                    : GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 300,
+                        mainAxisSpacing: 20,
+                        crossAxisSpacing: 20,
+                        childAspectRatio: 1.0,
+                      ),
+                      itemCount: filteredRetailers.length,
+                      itemBuilder: (context, index) {
+                        final retailer = filteredRetailers[index];
+                        return Card(
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircleAvatar(
+                                  radius: 30, 
+                                  backgroundColor: secondaryColor.withOpacity(0.1),
+                                  child: Icon(Icons.store, color: secondaryColor, size: 30)
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  retailer.businessName, 
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  retailer.address, 
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)
+                                ),
+                                // Removed "View Profile" Button as requested
+                              ],
+                            ),
                           ),
-                        ),
-                        // Pass the search update function to the search bar
-                        RetailerSearchBar(onSearch: _updateSearchTerm),
-                      ],
+                        );
+                      },
                     ),
-                    const SizedBox(height: 20),
-
-                    // Filter Tabs
-                    // Pass the update function and current selection to the filter tabs
-                    RetailerFilterTabs(
-                      selectedTab: _selectedTab,
-                      onTabSelected: _updateSelectedTab,
-                    ),
-
-                    // Divider Line
-                    const Divider(height: 21, color: Color.fromARGB(255, 230, 230, 230)),
-
-                    // Retailer Grid (takes up the remaining space)
-                    // Pass the filtered list to the grid
-                    Expanded(
-                      child: RetailerGrid(retailers: filteredRetailers),
-                    ),
-
-                    // Pagination Controls
-                    _buildPaginationControls(),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
+          );
+        }
+        return const SizedBox();
+      },
     );
   }
 }

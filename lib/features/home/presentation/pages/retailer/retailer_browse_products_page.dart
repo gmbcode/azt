@@ -1,187 +1,160 @@
-// lib/pages/retailer_browse_products_page.dart
-
 import 'package:flutter/material.dart';
-
-import '../../retailer_models/retailer_product_model.dart';
-import '../../retailer_widgets/retailer_product_card.dart';
-import '../../retailer_widgets/retailer_main_sidebar.dart';
-import '../../retailer_widgets/retailer_reusable_search_bar.dart';
-import '../../retailer_widgets/retailer_status_filter_chips.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../retailer/presentation/cubits/retailer_cubit.dart';
+import 'retailer_cart_page.dart';
 
 class RetailerBrowseProductsPage extends StatefulWidget {
   const RetailerBrowseProductsPage({super.key});
-
   @override
   State<RetailerBrowseProductsPage> createState() => _RetailerBrowseProductsPageState();
 }
 
 class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage> {
-  // --- STATE (Unchanged) ---
-  List<ProductModel> _allProducts = [];
-  List<ProductModel> _filteredProducts = [];
-  List<String> _categories = [];
-  String _selectedCategory = 'All';
   String _searchQuery = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchProducts();
-  }
-
-  // --- All internal logic (fetch, filter, search) is unchanged ---
-  void _fetchProducts() {
-    final List<ProductModel> dummyProducts = [
-      ProductModel(
-        id: 'prod1', category: 'Fruits', description: 'Fresh and organic apples.',
-        imageUrl: 'https://placehold.co/400x400/a_green/fff?text=Apples',
-        name: 'Apples', price: 80.0, stockremain: 45,
-      ),
-      ProductModel(
-        id: 'prod2', category: 'Vegetables', description: 'Locally sourced carrots.',
-        imageUrl: 'https://placehold.co/400x400/orange/fff?text=Carrots',
-        name: 'Carrots', price: 75.0, stockremain: 75,
-      ),
-      ProductModel(
-        id: 'prod3', category: 'Bakery', description: 'Freshly baked organic bread.',
-        imageUrl: 'https://placehold.co/400x400/brown/fff?text=Bread',
-        name: 'Organic Bread', price: 50.0, stockremain: 120,
-      ),
-      ProductModel(
-        id: 'prod4', category: 'Pantry', description: 'Extra virgin olive oil.',
-        imageUrl: 'https://placehold.co/400x400/olive/fff?text=Olive+Oil',
-        name: 'Olive Oil 5L', price: 1500.0, stockremain: 20,
-      ),
-    ];
-    setState(() {
-      _allProducts = dummyProducts;
-      _categories = ['All', ...dummyProducts.map((p) => p.category).toSet()];
-      _filteredProducts = _allProducts;
-    });
-  }
-
-  void _filterAndSearch() {
-    setState(() {
-      _filteredProducts = _allProducts.where((product) {
-        final bool matchesCategory = _selectedCategory == 'All' ||
-            product.category == _selectedCategory;
-        final bool matchesSearch = _searchQuery.isEmpty ||
-            product.name.toLowerCase().contains(_searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
-      }).toList();
-    });
-  }
-
-  void _onCategorySelected(String category) {
-    setState(() { _selectedCategory = category; });
-    _filterAndSearch();
-  }
-
-  void _onSearchChanged(String query) {
-    setState(() { _searchQuery = query; });
-    _filterAndSearch();
-  }
-
-  void _onAddToCart(ProductModel product) {
-    print("Added to cart: ${product.name}");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} added to cart!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: Row(
-        children: [
-          // --- Sidebar ---
-          const RetailerMainSidebar(selectedPage: 'browse_products'),
+    return BlocBuilder<RetailerCubit, RetailerState>(
+      builder: (context, state) {
+        if (state is RetailerLoading) return const Center(child: CircularProgressIndicator());
+        
+        if (state is RetailerLoaded) {
+          final products = state.wholesalerListings.where((p) => 
+             p.name.toLowerCase().contains(_searchQuery.toLowerCase())
+          ).toList();
 
-          // --- Main Content ---
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Header & Filters (Top white box) ---
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                       color: Colors.white, 
-                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Browse Products',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          final Map<String, int> cartCounts = {};
+          for (var item in state.cartItems) {
+            cartCounts[item['id']] = item['qty'];
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                        style: const TextStyle(color: Colors.black87), 
+                        decoration: InputDecoration(
+                          hintText: "Search products...",
+                          hintStyle: TextStyle(color: Colors.grey[600]),
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                         ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: ReusableSearchBar(
-                                hintText: 'Search products by name...',
-                                onChanged: _onSearchChanged,
-                              ),
-                            ),
-                            // TODO: Add a "View Cart" button here
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: StatusFilterChips(
-                            filters: _categories,
-                            selectedFilter: _selectedCategory,
-                            onSelected: _onCategorySelected,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24), // Space between boxes
-
-                  // --- *** THIS IS THE NEW GRID LAYOUT *** ---
-                  //
-                  // This Expanded widget forces the grid to fill
-                  // all the remaining empty space.
-                  //
-                  Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.all(0), // No padding needed, grid handles it
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 300, // Max width for each card
-                        mainAxisSpacing: 20, // Space between rows
-                        crossAxisSpacing: 20, // Space between columns
-                        childAspectRatio: 0.7, // Taller cards (height > width)
                       ),
-                      itemCount: _filteredProducts.length,
+                    ),
+                    const SizedBox(width: 16),
+                    if (MediaQuery.of(context).size.width > 800)
+                      FloatingActionButton.extended(
+                        onPressed: () {
+                          final retailerCubit = context.read<RetailerCubit>();
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: retailerCubit, child: const RetailerCartPage())));
+                        },
+                        label: Text("Cart (${state.cartItems.length})"),
+                        icon: const Icon(Icons.shopping_cart),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: products.isEmpty 
+                  ? Center(child: Text("No products found", style: TextStyle(color: Colors.grey[600])))
+                  : GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 220,
+                        childAspectRatio: 0.7,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                      ),
+                      itemCount: products.length,
                       itemBuilder: (context, index) {
-                        final product = _filteredProducts[index];
-                        // Use the new ProductCard widget
-                        return ProductCard(
-                          product: product,
-                          onAddToCart: () => _onAddToCart(product),
+                        final product = products[index];
+                        final int inCartQty = cartCounts[product.id] ?? 0;
+                        
+                        // FIXED: Validation logic
+                        final bool isMaxReached = inCartQty >= product.availableQty;
+                        final bool isOutOfStock = product.availableQty == 0;
+
+                        return Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.network(product.imageUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Container(color: Colors.grey[200], child: const Icon(Icons.image))),
+                                    if (inCartQty > 0)
+                                      Positioned(
+                                        top: 8, right: 8,
+                                        child: CircleAvatar(
+                                          backgroundColor: Colors.orange,
+                                          radius: 14,
+                                          child: Text("$inCartQty", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                      )
+                                  ],
+                                )
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // Rupee Symbol Fix
+                                        Text('₹${product.price}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                        Text('Stock: ${product.availableQty}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 36,
+                                      child: ElevatedButton(
+                                        // FIXED: Disable button if max reached or out of stock
+                                        onPressed: (isMaxReached || isOutOfStock)
+                                            ? null 
+                                            : () => context.read<RetailerCubit>().addToCart(product),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: (isMaxReached || isOutOfStock) ? Colors.grey : null,
+                                        ),
+                                        child: Text(
+                                          isOutOfStock 
+                                            ? "Out of Stock" 
+                                            : (isMaxReached ? "Max Limit" : "Add to Cart"),
+                                          style: TextStyle(fontSize: 12, color: (isMaxReached || isOutOfStock) ? Colors.white : null)
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         );
                       },
                     ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
+          );
+        }
+        return const SizedBox();
+      },
     );
   }
 }

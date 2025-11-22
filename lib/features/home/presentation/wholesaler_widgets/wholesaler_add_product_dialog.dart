@@ -1,10 +1,7 @@
-// lib/widgets/add_product_dialog.dart
-
 import 'package:flutter/material.dart';
 
 class AddProductDialog extends StatefulWidget {
   final ValueChanged<Map<String, dynamic>> onAddProduct;
-
   const AddProductDialog({super.key, required this.onAddProduct});
 
   @override
@@ -16,91 +13,49 @@ class _AddProductDialogState extends State<AddProductDialog> {
   final nameController = TextEditingController();
   final categoryController = TextEditingController();
   final priceController = TextEditingController();
-  final stockRemainController = TextEditingController();
-  final stockSoldController = TextEditingController();
+  final stockController = TextEditingController();
+  final moqController = TextEditingController();
+  final descController = TextEditingController();
 
-  void _submitForm() {
-    if (_formKey.currentState?.validate() ?? false) {
-      final newProductData = {
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      widget.onAddProduct({
         'name': nameController.text,
         'category': categoryController.text,
-        'price': double.tryParse(priceController.text) ?? 0.0,
-        'stockremain': int.tryParse(stockRemainController.text) ?? 0,
-        'stocksold': int.tryParse(stockSoldController.text) ?? 0,
-      };
-      
-      widget.onAddProduct(newProductData);
-      Navigator.of(context).pop(); // Close the dialog
+        'price': priceController.text,
+        'stock': stockController.text,
+        'moq': moqController.text,
+        'description': descController.text,
+        'imageUrl': 'https://placehold.co/400?text=${nameController.text}', // Placeholder
+      });
+      Navigator.of(context).pop();
     }
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    categoryController.dispose();
-    priceController.dispose();
-    stockRemainController.dispose();
-    stockSoldController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Add New Product'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildTextField(nameController, 'Product Name', false),
-              _buildTextField(categoryController, 'Category', false),
-              _buildTextField(priceController, 'Price', true),
-              _buildTextField(stockRemainController, 'Stock Remaining', true),
-              _buildTextField(stockSoldController, 'Stock Sold', true),
+              TextFormField(controller: nameController, decoration: const InputDecoration(labelText: 'Name'), validator: (v) => v!.isEmpty ? 'Required' : null),
+              TextFormField(controller: categoryController, decoration: const InputDecoration(labelText: 'Category'), validator: (v) => v!.isEmpty ? 'Required' : null),
+              TextFormField(controller: priceController, decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
+              TextFormField(controller: stockController, decoration: const InputDecoration(labelText: 'Stock'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
+              TextFormField(controller: moqController, decoration: const InputDecoration(labelText: 'MOQ (Min Order Qty)'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
+              TextFormField(controller: descController, decoration: const InputDecoration(labelText: 'Description')),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop(); 
-          },
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange, 
-          ),
-          onPressed: _submitForm, 
-          child: const Text('Add Product', style: TextStyle(color: Colors.white)),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: const Text('Add', style: TextStyle(color: Colors.white))),
       ],
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label, bool isNumber) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TextFormField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter the $label.';
-          }
-          if (isNumber && double.tryParse(value) == null) {
-            return 'Please enter a valid number.';
-          }
-          return null;
-        },
-      ),
     );
   }
 }

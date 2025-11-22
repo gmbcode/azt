@@ -72,6 +72,7 @@ class _wholesalerRoleState extends State<wholesalerRole > {
           const SnackBar(content: Text("Wholesaler profile created successfully!")),
         );
         setState(() => _isLoading = false);
+        Navigator.of(context).pop(); 
       }
     } catch (e) {
       if (mounted) {

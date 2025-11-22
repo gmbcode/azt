@@ -1,87 +1,65 @@
-import 'package:azt/features/home/presentation/wholesaler_widgets/wholesaler_sidebar_item.dart';
 import 'package:flutter/material.dart';
-
-import '../pages/wholesaler/wholesaler_dashboardpage.dart';
-import '../pages/wholesaler/wholesaler_inventorypage.dart';
-import '../pages/wholesaler/wholesaler_orders.dart';
-import '../pages/wholesaler/wholesaler_retailers.dart';
-
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/presentation/cubits/auth_cubit.dart';
+import 'wholesaler_sidebar_item.dart';
 
 class MainSidebar extends StatelessWidget {
   final String selectedPage;
+  final ValueChanged<String> onPageChanged;
 
   const MainSidebar({
     super.key,
     required this.selectedPage,
+    required this.onPageChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    // This is the navigation logic
-    void navigateTo(Widget page) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => page),
-      );
-    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      width: 250,
-      color: const Color.fromARGB(255, 2, 18, 37),
+      width: 260,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark 
+            ? [const Color(0xFF1E1E2C), const Color(0xFF2D2D44)] 
+            : [Colors.indigo.shade900, Colors.indigo.shade700],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sidebar Header
-          Container(
-            height: 60,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerLeft,
-            color: const Color.fromARGB(255, 2, 18, 37),
-            child: const Icon(Icons.business, color: Colors.white, size: 30),
+          const SizedBox(height: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                const Icon(Icons.storefront, color: Colors.white, size: 32),
+                const SizedBox(width: 12),
+                const Text("Wholesaler Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-
-          // Dashboard Item
-          SidebarItem(
-            icon: Icons.dashboard,
-            text: 'Dashboard',
-            isSelected: selectedPage == 'dashboard',
-            onTap: selectedPage == 'dashboard'
-                ? null // Disable tap if already selected
-                : () => navigateTo(const wholeSalerDashboardpage()),
+          const SizedBox(height: 30),
+          const Divider(color: Colors.white24, height: 1),
+          
+          SidebarItem(icon: Icons.dashboard_outlined, text: 'Dashboard', isSelected: selectedPage == 'dashboard', onTap: () => onPageChanged('dashboard')),
+          SidebarItem(icon: Icons.inventory_2_outlined, text: "Inventory", isSelected: selectedPage == 'inventory', onTap: () => onPageChanged('inventory')),
+          SidebarItem(icon: Icons.list_alt, text: "My Listings", isSelected: selectedPage == 'listings', onTap: () => onPageChanged('listings')),
+          SidebarItem(icon: Icons.shopping_bag_outlined, text: "Orders", isSelected: selectedPage == 'orders', onTap: () => onPageChanged('orders')),
+          SidebarItem(icon: Icons.people_outline, text: "Retailers", isSelected: selectedPage == 'retailers', onTap: () => onPageChanged('retailers')),
+          
+          const Spacer(),
+          const Divider(color: Colors.white24),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            onTap: () => context.read<AuthCubit>().logout(),
           ),
-
-          // Inventory Item
-          SidebarItem(
-            icon: Icons.inventory_2,
-            text: "Inventory",
-            isSelected: selectedPage == 'inventory',
-            onTap: selectedPage == 'inventory'
-                ? null // Disable tap if already selected
-                : () => navigateTo(const InventoryPage()),
-          ),
-
-          // Orders Item
-          SidebarItem(
-            icon: Icons.shopping_bag,
-            text: "Orders",
-            isSelected: selectedPage == 'orders',
-            onTap: selectedPage == 'orders'
-                ? null // Disable tap if already selected
-                : () => navigateTo(const OrdersPage()),
-          ),
-
-          // Retailers Item
-          SidebarItem(
-            icon: Icons.group,
-            text: "Retailers",
-            isSelected: selectedPage == 'retailers',
-            onTap: selectedPage == 'retailers'
-                ? null // Disable tap if already selected
-                : () => navigateTo(const RetailersPage()),
-          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

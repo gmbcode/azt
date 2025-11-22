@@ -48,6 +48,7 @@ class DefaultFirebaseOptions {
     authDomain: 'azt-playground-app.firebaseapp.com',
     storageBucket: 'azt-playground-app.firebasestorage.app',
     measurementId: 'G-NQCT7LCPJV',
+    databaseURL: 'https://azt-playground-app-default-rtdb.europe-west1.firebasedatabase.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -56,6 +57,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '64211053051',
     projectId: 'azt-playground-app',
     storageBucket: 'azt-playground-app.firebasestorage.app',
+    databaseURL: 'https://azt-playground-app-default-rtdb.europe-west1.firebasedatabase.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -65,6 +67,7 @@ class DefaultFirebaseOptions {
     projectId: 'azt-playground-app',
     storageBucket: 'azt-playground-app.firebasestorage.app',
     iosBundleId: 'com.example.azt',
+    databaseURL: 'https://azt-playground-app-default-rtdb.europe-west1.firebasedatabase.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -74,6 +77,7 @@ class DefaultFirebaseOptions {
     projectId: 'azt-playground-app',
     storageBucket: 'azt-playground-app.firebasestorage.app',
     iosBundleId: 'com.example.azt',
+    databaseURL: 'https://azt-playground-app-default-rtdb.europe-west1.firebasedatabase.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -84,5 +88,6 @@ class DefaultFirebaseOptions {
     authDomain: 'azt-playground-app.firebaseapp.com',
     storageBucket: 'azt-playground-app.firebasestorage.app',
     measurementId: 'G-6ZNXRV3SWQ',
+    databaseURL: 'https://azt-playground-app-default-rtdb.europe-west1.firebasedatabase.app',
   );
 }

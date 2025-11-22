@@ -1,219 +1,136 @@
-// lib/pages/orders.dart
-
 import 'package:flutter/material.dart';
-
-import '../../wholesaler_widgets/wholesaler_Main_sidebar.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../wholesaler/data/models/order_model.dart';
+import '../../../../wholesaler/presentation/cubits/wholesaler_cubit.dart';
 import '../../wholesaler_widgets/wholesaler_order_filter_chips.dart';
 import '../../wholesaler_widgets/wholesaler_order_search_bar.dart';
-import '../../wholesaler_widgets/wholesaler_order_table.dart';
-
-
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
-
   @override
   State<OrdersPage> createState() => _OrdersPageState();
 }
 
 class _OrdersPageState extends State<OrdersPage> {
-  // STATE VARIABLES
-  List<OrderModel> _currentOrders = []; // The list shown in the table
   String _selectedFilter = 'All';
   String _searchTerm = '';
-  // Map to hold selection state: {orderId: isSelected}
-  Map<String, bool> _selectionMap = {}; 
+  Map<String, bool> _selectionMap = {};
 
-  @override
-  void initState() {
-    super.initState();
-    // Initialize state with global data
-    _currentOrders.addAll(allOrders); 
-    _selectionMap = {for (var order in allOrders) order.id: false};
-  }
-
-  // --- LOGIC FUNCTIONS ---
-
-  void _applyFiltersAndSearch() {
-    List<OrderModel> filteredList = allOrders;
-
-    // 1. Apply Filter
-    if (_selectedFilter != 'All') {
-      filteredList = filteredList.where((order) {
-        return order.orderStatus == _selectedFilter;
-      }).toList();
+  String _getRetailerName(String uid, List<dynamic> retailers) {
+    try {
+      final retailer = retailers.firstWhere((r) => r.uid == uid);
+      return retailer.businessName;
+    } catch (e) {
+      return 'Retailer ($uid)';
     }
-    
-    // 2. Apply Search
-    if (_searchTerm.isNotEmpty) {
-      final term = _searchTerm.toLowerCase();
-      filteredList = filteredList.where((order) {
-        return order.id.toLowerCase().contains(term) ||
-               order.customerId.toLowerCase().contains(term);
-      }).toList();
+  }
+
+  // Confirmation Dialog
+  Future<bool> _showConfirmationDialog(BuildContext context, String status) async {
+    return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Set Order to $status?"),
+        content: Text("Are you sure you want to mark the selected orders as $status? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("No")),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Yes")),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  void _updateStatusForSelected(BuildContext context, String newStatus, List<OrderModel> currentOrders) async {
+    final selectedIds = _selectionMap.entries.where((e) => e.value).map((e) => e.key).toList();
+    if (selectedIds.isEmpty) return;
+
+    // Show confirmation for Critical Actions
+    if (newStatus == 'Completed' || newStatus == 'Cancelled') {
+      final confirm = await _showConfirmationDialog(context, newStatus);
+      if (!confirm) return;
     }
-    
-    setState(() {
-      _currentOrders = filteredList;
-    });
-  }
 
-  void _updateFilter(String newFilter) {
-    setState(() {
-      _selectedFilter = newFilter;
-      _applyFiltersAndSearch();
-    });
-  }
-
-  void _updateSearchTerm(String newTerm) {
-    // Debouncing logic could be added here for performance
-    setState(() {
-      _searchTerm = newTerm;
-      _applyFiltersAndSearch();
-    });
-  }
-
-  // FIX 2: Corrected function signature
-  void _onOrderSelectionChanged(String orderId, bool isSelected) {
-    setState(() {
-      _selectionMap[orderId] = isSelected;
-    });
-  }
-
-  void _onSelectAll(bool isSelected) {
-    setState(() {
-      // Apply selection only to the currently visible orders
-      for (var order in _currentOrders) {
-        _selectionMap[order.id] = isSelected;
+    for (var id in selectedIds) {
+      // Pass items if Cancelling to handle restocking
+      if (newStatus == 'Cancelled') {
+         final order = currentOrders.firstWhere((o) => o.id == id);
+         context.read<WholesalerCubit>().updateOrderStatus(id, newStatus, itemsToRestock: order.items);
+      } else {
+         context.read<WholesalerCubit>().updateOrderStatus(id, newStatus);
       }
-    });
-  }
-
-  void _deleteSelected() {
-    setState(() {
-      // Get the IDs of the selected orders
-      final selectedIds = _selectionMap.entries
-          .where((entry) => entry.value == true)
-          .map((entry) => entry.key)
-          .toSet();
-      
-      // Remove selected orders from the global list (allOrders)
-      allOrders.removeWhere((order) => selectedIds.contains(order.id));
-      
-      // Re-initialize selection map and apply filters to refresh the view
-      _selectionMap = {for (var order in allOrders) order.id: false};
-      _applyFiltersAndSearch(); // Recalculate _currentOrders based on new allOrders list
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${selectedIds.length} orders deleted.')),
-      );
-    });
-  }
-  
-  // Helper widget for the bottom "Bulk Actions" row
-  Widget _buildBulkActions(bool hasSelected) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            // Delete Selected Button
-            TextButton.icon(
-              icon: Icon(Icons.delete, size: 18, color: hasSelected ? Colors.red : Colors.grey),
-              label: Text(
-                'Delete Selected',
-                style: TextStyle(color: hasSelected ? Colors.red : Colors.grey),
-              ),
-              onPressed: hasSelected ? _deleteSelected : null, // **Delete Logic**
-            ),
-            const SizedBox(width: 20),
-            // Export Button (Placeholder)
-            TextButton.icon(
-              icon: Icon(Icons.upload_file, size: 16, color: Colors.grey[700]),
-              label: Text('Export to CSV', style: TextStyle(color: Colors.grey[700])),
-              onPressed: () { /* Export logic */ },
-            ),
-          ],
-        ),
-        
-        // Pagination
-        Row(
-          children: [
-            IconButton(icon: const Icon(Icons.arrow_back_ios, size: 16), onPressed: () {}),
-            const Text('1'),
-            IconButton(icon: const Icon(Icons.arrow_forward_ios, size: 16), onPressed: () {}),
-          ],
-        )
-      ],
-    );
+    }
+    setState(() => _selectionMap.clear());
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool hasSelected = _currentOrders.any((order) => _selectionMap[order.id] == true);
-    final bool allSelected = _currentOrders.isNotEmpty && _currentOrders.every((order) => _selectionMap[order.id] == true);
+    return BlocBuilder<WholesalerCubit, WholesalerState>(
+      builder: (context, state) {
+        if (state is WholesalerLoading) return const Center(child: CircularProgressIndicator());
+        
+        if (state is WholesalerLoaded) {
+          List<OrderModel> filtered = state.orders;
+          if (_selectedFilter != 'All') filtered = filtered.where((o) => o.orderStatus == _selectedFilter).toList();
+          if (_searchTerm.isNotEmpty) filtered = filtered.where((o) => o.id.contains(_searchTerm) || o.customerId.contains(_searchTerm)).toList();
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100], 
-      body: Row(
-        children: [
-          const MainSidebar(selectedPage: 'orders'),
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Orders Management", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                const SizedBox(height: 16),
+                SingleChildScrollView(scrollDirection: Axis.horizontal, child: OrderFilterChips(selectedFilter: _selectedFilter, onFilterSelected: (val) => setState(() => _selectedFilter = val))),
+                const SizedBox(height: 10),
+                OrderSearchBar(onSearch: (val) => setState(() => _searchTerm = val)),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_,__) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final order = filtered[index];
+                        final retailerName = _getRetailerName(order.customerId, state.retailers);
+                        final isCompleted = order.orderStatus == 'Completed';
+                        final isCancelled = order.orderStatus == 'Cancelled';
+                        final isLocked = isCompleted || isCancelled;
 
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Container(
-                padding: const EdgeInsets.all(30),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Orders", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 20),
-
-                    // Filter Chips - Pass callbacks and state
-                    OrderFilterChips(
-                      selectedFilter: _selectedFilter,
-                      onFilterSelected: _updateFilter,
+                        return CheckboxListTile(
+                          value: _selectionMap[order.id] ?? false,
+                          onChanged: isLocked ? null : (val) => setState(() => _selectionMap[order.id] = val ?? false),
+                          enabled: !isLocked,
+                          title: Text(retailerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text("Order #${order.id.substring(0,5)} • ₹${order.total.toStringAsFixed(2)}\n${order.formattedOrderTime}"),
+                          secondary: Chip(label: Text(order.orderStatus, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: order.statusColor, padding: EdgeInsets.zero),
+                          isThreeLine: true,
+                        );
+                      },
                     ),
-                    const SizedBox(height: 20),
-
-                    // Search Bar - Pass callback
-                    OrderSearchBar(onSearch: _updateSearchTerm),
-                    const SizedBox(height: 20),
-
-                    // Order Table - Pass filtered list, selection map, and callbacks
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: OrderTable(
-                            orders: _currentOrders,
-                            selectionMap: _selectionMap,
-                            onOrderSelectionChanged: _onOrderSelectionChanged,
-                            onSelectAll: _onSelectAll,
-                            allSelected: allSelected,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Bulk Actions & Pagination - Pass state for button enablement
-                    _buildBulkActions(hasSelected),
-                  ],
+                  ),
                 ),
-              ),
+                if (_selectionMap.values.any((v) => v))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Wrap(
+                      spacing: 10,
+                      children: [
+                        ElevatedButton(onPressed: () => _updateStatusForSelected(context, 'Processing', state.orders), child: const Text("Set Processing")),
+                        ElevatedButton(onPressed: () => _updateStatusForSelected(context, 'Shipped', state.orders), child: const Text("Set Shipped")),
+                        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => _updateStatusForSelected(context, 'Completed', state.orders), child: const Text("Set Completed", style: TextStyle(color: Colors.white))),
+                        // Added Cancelled Button
+                        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => _updateStatusForSelected(context, 'Cancelled', state.orders), child: const Text("Set Cancelled", style: TextStyle(color: Colors.white))),
+                      ],
+                    ),
+                  )
+              ],
             ),
-          ),
-        ],
-      ),
+          );
+        }
+        return const SizedBox();
+      },
     );
   }
 }

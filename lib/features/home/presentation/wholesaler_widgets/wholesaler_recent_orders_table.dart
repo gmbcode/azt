@@ -1,36 +1,29 @@
-// lib/widgets/recent_orders_table.dart
-
 import 'package:flutter/material.dart';
+import '../../../wholesaler/data/models/order_model.dart';
+import '../../../wholesaler/data/models/retailer_model.dart'; // Added Import
 
 class RecentOrdersTable extends StatelessWidget {
-  const RecentOrdersTable({super.key});
+  final List<OrderModel> orders;
+  final List<WholesalerViewRetailerModel> retailers; // Added retailers list
+
+  const RecentOrdersTable({
+    super.key, 
+    required this.orders,
+    required this.retailers, // Required
+  });
+
+  String _getRetailerName(String uid) {
+    try {
+      final retailer = retailers.firstWhere((r) => r.uid == uid);
+      return retailer.businessName;
+    } catch (e) {
+      return 'Retailer ($uid)'; // Fallback
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Dummy data list based on your JSON structure
-    // TODO: Replace this with a stream/future from your Firebase 'orders' collection
-    final List<Map<String, dynamic>> recentOrders = [//just for display hence we use map
-      {
-        "id": "dummy1",
-        "orderbyid": "customerid",
-        "total": 100,
-        "status": "delivered",
-      },
-      {
-        "id": "dummy2",
-        "orderbyid": "retailerid",
-        "total": 1500,
-        "status": "confirmed",
-      },
-      {
-        "id": "dummy3",
-        "orderbyid": "customerid_2",
-        "total": 75.50,
-        "status": "pending",
-      }
-    ];
-
-    return Container(   //this is the whole box ,the parent code will decide the size
+    return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -40,66 +33,36 @@ class RecentOrdersTable extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Recent Orders",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Text("Recent Orders", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-
-          // --- THIS IS THE FIX ---
-          // We use a SizedBox with width: double.infinity to force
-          // the DataTable to stretch to the full width of the card.
-          // The SingleChildScrollView has been removed.
-          SizedBox(
-            width: double.infinity,
-            child: DataTable(   //creates a table like structure for datas
-              headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
-              columns: const [
-                DataColumn(label: Text('Order ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Customer', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Total', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-              ],
-              rows: recentOrders.map((order) {
-                return DataRow(
-                  cells: [
-                    DataCell(Text(order['id'])),
-                    DataCell(Text(order['orderbyid'])),
-                    DataCell(Text('\$${order['total'].toStringAsFixed(2)}')),
-                    DataCell(
-                      Chip(
-                        label: Text(
-                          order['status'],
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                        backgroundColor: _getStatusColor(order['status']),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      ),
+          DataTable(
+            headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
+            columns: const [
+              DataColumn(label: Text('Order ID')),
+              DataColumn(label: Text('Customer')),
+              DataColumn(label: Text('Total')),
+              DataColumn(label: Text('Status')),
+            ],
+            rows: orders.map((order) {
+              return DataRow(
+                cells: [
+                  DataCell(Text(order.id)),
+                  // Show Name instead of ID
+                  DataCell(Text(_getRetailerName(order.customerId))), 
+                  DataCell(Text('₹${order.total.toStringAsFixed(2)}')),
+                  DataCell(
+                    Chip(
+                      label: Text(order.orderStatus, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      backgroundColor: order.statusColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     ),
-                  ],
-                );
-              }).toList(),
-            ),
+                  ),
+                ],
+              );
+            }).toList(),
           ),
         ],
       ),
     );
-  }
-
-  // Helper method to get a color based on the order status
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'delivered':
-        return Colors.green;
-      case 'confirmed':
-        return Colors.blue;
-      case 'pending':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
   }
 }
