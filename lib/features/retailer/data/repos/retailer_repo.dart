@@ -1,3 +1,4 @@
+import 'package:azt/services/mail_helper.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction; 
 import '../../../wholesaler/data/models/wholesaler_listing_model.dart';
@@ -286,12 +287,38 @@ class RetailerRepo {
   }
 
   Future<void> updateCustomerOrderStatus(String orderId, String status) async {
-    await _firestore.collection('orders_customer').doc(orderId).update({
-      'status': status.toLowerCase(),
-    });
-  }
+  // 1. Update Firestore
+  await _firestore.collection('orders_customer').doc(orderId).update({
+    'status': status.toLowerCase(),
+  });
 
-  Future<void> cancelCustomerOrderAndRestock(String orderId, List<dynamic> items, String retailerUid) async {
+  // 2. Trigger Email Logic
+  try {
+    DocumentSnapshot orderSnap = await _firestore.collection('orders_customer').doc(orderId).get();
+    if (orderSnap.exists) {
+      // Assuming the customer's UID is stored as 'customer_uid' or 'userId'
+      // Check your 'orders_customer' schema to be sure. 
+      String customerUid = orderSnap.get('customer_uid'); 
+      
+      DocumentSnapshot userSnap = await _firestore.collection('users').doc(customerUid).get();
+      
+      if (userSnap.exists) {
+        String email = userSnap.get('email');
+        String name = userSnap.get('username') ?? 'Customer';
+
+        await MailService.sendStatusUpdateEmail(email, name, orderId, status);
+      }
+    }
+  } catch (e) {
+    print("Error sending email notification: $e");
+  }
+}
+
+  // Add this import at the top
+// import 'package:your_app_package/core/services/mail_service.dart';
+
+Future<void> cancelCustomerOrderAndRestock(String orderId, List<dynamic> items, String retailerUid) async {
+    // --- ORIGINAL LOGIC START ---
     await _firestore.collection('orders_customer').doc(orderId).update({'status': 'cancelled'});
 
     for (var item in items) {
@@ -325,6 +352,31 @@ class RetailerRepo {
         }
       }
     }
+    // --- ORIGINAL LOGIC END ---
+
+    // --- NEW EMAIL LOGIC START ---
+    try {
+      final orderDoc = await _firestore.collection('orders_customer').doc(orderId).get();
+      if (orderDoc.exists) {
+        // Adjust 'customer_uid' based on your database schema if needed
+        final customerUid = (orderDoc.data() as Map<String, dynamic>).containsKey('customer_uid') 
+            ? orderDoc.get('customer_uid') 
+            : orderDoc.get('userId'); 
+        
+        final userDoc = await _firestore.collection('users').doc(customerUid).get();
+        if (userDoc.exists) {
+          final String email = userDoc.get('email');
+          final String name = (userDoc.data() as Map<String, dynamic>).containsKey('username') 
+              ? userDoc.get('username') 
+              : 'Customer';
+
+          await MailService.sendStatusUpdateEmail(email, name, orderId, 'Cancelled');
+        }
+      }
+    } catch (e) {
+      print("Failed to send cancellation email: $e");
+    }
+    // --- NEW EMAIL LOGIC END ---
   }
 
   Stream<List<Map<String, dynamic>>> getAppUsersStream() {
