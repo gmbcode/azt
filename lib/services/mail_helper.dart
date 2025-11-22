@@ -1,25 +1,57 @@
-import 'package:mailjet/mailjet.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 class MailService {
-  static const String apiKey = "a733cabf8e5af56567d5cc0c39992c9e";
-  static const String secretKey = "8d957c6dc19904630f615febf0b37265";
-  static const String myEmail = "csawebsitemanager@gmail.com";
+  /// Sends an email by calling our local Python proxy server.
+  /// This avoids CORS issues on the Web.
+  static Future<void> sendStatusUpdateEmail(
+      String recipientEmail, String recipientName, String orderId, String newStatus) async {
+    
+    // Determine the correct URL for the local server
+    String baseUrl;
+    if (kIsWeb) {
+      // For Web, localhost is 127.0.0.1
+      baseUrl = 'https://upbound-nena-noncritical.ngrok-free.dev'; 
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      // For Android Emulator, localhost is 10.0.2.2
+      baseUrl = 'http://upbound-nena-noncritical.ngrok-free.dev';
+    } else {
+      // For iOS Simulator, localhost is 127.0.0.1
+      baseUrl = 'http://upbound-nena-noncritical.ngrok-free.dev';
+    }
 
-  static Future<void> sendStatusUpdateEmail(String recipientEmail, String recipientName, String orderId, String newStatus) async {
+    final Uri url = Uri.parse('$baseUrl/send-email');
+
     try {
-      MailJet mailJet = MailJet(apiKey: apiKey, secretKey: secretKey);
-      
-      await mailJet.sendEmail(
-        subject: "Order #$orderId Status Update",
-        sender: Sender(email: myEmail, name: "AZT App"),
-        reciepients: [
-          Recipient(email: recipientEmail, name: recipientName),
-        ],
-        htmlEmail: "<h3>Order Update</h3><p>Your order <b>#$orderId</b> status has been changed to: <b>$newStatus</b></p>",
+      print("📨 Sending request to local server: $url");
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "recipient_email": recipientEmail,
+          "recipient_name": recipientName,
+          "order_id": orderId,
+          "new_status": newStatus
+        }),
       );
-      print("Email sent to $recipientEmail");
+
+      if (response.statusCode == 200) {
+        print("✅ Email sent successfully via local server!");
+      } else {
+        print("❌ Server error: ${response.statusCode}");
+        print("Response: ${response.body}");
+      }
     } catch (e) {
-      print("Failed to send email: $e");
+      print("❌ Connection error: $e");
+      if (kIsWeb) {
+        print("👉 Make sure your Python server is running (python server.py)");
+      } else {
+        print("👉 Make sure your Python server is running and your emulator can reach it.");
+      }
     }
   }
 }

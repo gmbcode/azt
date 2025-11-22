@@ -273,13 +273,13 @@ packages:
     source: hosted
     version: "1.1.0"
   http:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: http
-      sha256: bb2ce4590bc2667c96f318d68cac1b5a7987ec819351d32b1c987239a815e007
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
       url: "https://pub.dev"
     source: hosted
-    version: "1.5.0"
+    version: "1.6.0"
   http_parser:
     dependency: transitive
     description:
@@ -328,14 +328,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.6.2"
-  mailjet:
-    dependency: "direct main"
-    description:
-      name: mailjet
-      sha256: b77ed258585375e30f23a0f22368f2b51164e97955b901fbfce8641ab8660e5d
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.4+4"
   matcher:
     dependency: transitive
     description:
@@ -360,14 +352,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.16.0"
-  mimalo:
-    dependency: transitive
-    description:
-      name: mimalo
-      sha256: cd95b39d8ffec530429db0d8d75bf915c54b8af72361e3a06312b9fbd0c1ac74
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.4+5"
   nested:
     dependency: transitive
     description:
@@ -432,14 +416,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
-  sexy_api_client:
-    dependency: transitive
-    description:
-      name: sexy_api_client
-      sha256: c887f640ce2eaa655cea016fda6c0cef0891fa24d9dbeaefd420ab55180d658b
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.8+8"
   sky_engine:
     dependency: transitive
     description: flutter
