@@ -34,24 +34,39 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
     super.dispose();
   }
 
-  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     if (!mounted) return;
     
     setState(() => _isProcessingPayment = false);
     
-    // Payment successful - Complete the order
-    context.read<CustomerCubit>().checkout(_pendingAddress);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Payment Successful! Order ID: ${response.orderId ?? 'N/A'}'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    
-    // Navigate back after order placement
-    if (mounted) {
-      Navigator.pop(context);
+    try {
+      // Payment successful - Complete the order
+      await context.read<CustomerCubit>().checkout(_pendingAddress);
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Payment Successful! Order placed successfully.'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      
+      // Clear the address field
+      _addressController.clear();
+      
+      // Navigate back to dashboard or stay on cart page (cart will be empty now)
+      // No need to pop - the cart page will show "Cart is empty" automatically
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Order placement failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
