@@ -16,6 +16,7 @@ import 'customer_dashboard_page.dart';
 import 'customer_browse_products_page.dart';
 import 'customer_cart_page.dart';
 import 'customer_orders_page.dart';
+import 'customer_product_for_you_page.dart';
 import 'customer_profile_page.dart';
 
 class CustomerHomePage extends StatefulWidget {
@@ -35,7 +36,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       return;
     }
     setState(() => _currentPage = page);
-    // Close drawer on mobile after selection
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.pop(context);
     }
@@ -43,7 +43,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Get UID
     String uid = '';
     final authState = context.read<AuthCubit>().state;
     if (authState is Authenticated) uid = authState.user.uid;
@@ -56,14 +55,12 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           data: CustomerTheme.theme,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Responsive Logic
               final bool isDesktop = constraints.maxWidth > 800;
           
               return Scaffold(
                 key: _scaffoldKey,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 
-                // Mobile Drawer
                 drawer: !isDesktop 
                   ? CustomerDrawer(currentPage: _currentPage, onPageChanged: _navigate)
                   : null,
@@ -81,15 +78,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                         _CartBadgeIcon(onTap: () => setState(() => _currentPage = 'cart'))
                       ],
                     )
-                  : null, // No AppBar on Desktop, Sidebar handles it
+                  : null,
           
                 body: Row(
                   children: [
-                    // Desktop Sidebar
                     if (isDesktop)
                       CustomerDrawer(currentPage: _currentPage, onPageChanged: _navigate),
                     
-                    // Main Content
                     Expanded(
                       child: Column(
                         children: [
@@ -128,6 +123,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   String _getPageTitle() {
     switch (_currentPage) {
       case 'browse': return 'Browse Products';
+      case 'products_for_you': return 'For You'; // NEW TITLE
       case 'cart': return 'Shopping Cart';
       case 'orders': return 'Order History';
       case 'profile': return 'My Profile';
@@ -137,9 +133,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 
   Widget _getPageWidget() {
-    // Key is important for AnimatedSwitcher
     switch (_currentPage) {
       case 'browse': return const CustomerBrowseProductsPage(key: ValueKey('browse'));
+      case 'products_for_you': return const CustomerProductsForYouPage(key: ValueKey('products_for_you')); // NEW PAGE
       case 'cart': return const CustomerCartPage(key: ValueKey('cart'));
       case 'orders': return const CustomerOrdersPage(key: ValueKey('orders'));
       case 'profile': return const CustomerProfilePage(key: ValueKey('profile'));

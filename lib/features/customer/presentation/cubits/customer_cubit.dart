@@ -9,11 +9,13 @@ class CustomerInitial extends CustomerState {}
 class CustomerLoading extends CustomerState {}
 class CustomerLoaded extends CustomerState {
   final List<CustomerProductModel> products;
+  final List<CustomerProductModel> productsForYou; // NEW: The filtered list
   final List<CustomerCartItemModel> cart;
   final List<OrderModel> orders;
   
   CustomerLoaded({
     this.products = const [], 
+    this.productsForYou = const [],
     this.cart = const [], 
     this.orders = const [],
   });
@@ -24,13 +26,28 @@ class CustomerCubit extends Cubit<CustomerState> {
   final CustomerRepo _repo;
   final String _uid;
 
+  // Local Cache for filtering
+  List<String> _localRetailerIds = [];
+  String? _userPincode;
+
   CustomerCubit(this._repo, this._uid) : super(CustomerInitial()) {
     _init();
   }
 
-  void _init() {
+  void _init() async {
     emit(CustomerLoading());
     
+    // 1. Initialize Location Data
+    try {
+      _userPincode = await _repo.getUserPincode(_uid);
+      if (_userPincode != null) {
+        _localRetailerIds = await _repo.getLocalRetailerIds(_userPincode!);
+      }
+    } catch (e) {
+      print("Error initializing location logic: $e");
+    }
+
+    // 2. Listen to streams
     _repo.getProductsStream().listen((products) {
       _emitState(products: products);
     });
@@ -55,13 +72,25 @@ class CustomerCubit extends Cubit<CustomerState> {
       c = cart ?? currentState.cart;
       o = orders ?? currentState.orders;
     }
-    emit(CustomerLoaded(products: p, cart: c, orders: o));
+
+    // 3. Filter 'Products For You' logic
+    // We filter the main product list against our local retailer IDs
+    List<CustomerProductModel> pForYou = [];
+    if (_localRetailerIds.isNotEmpty) {
+      pForYou = p.where((prod) => _localRetailerIds.contains(prod.retailerId)).toList();
+    }
+
+    emit(CustomerLoaded(
+      products: p, 
+      productsForYou: pForYou, // Emit the filtered list
+      cart: c, 
+      orders: o
+    ));
   }
 
   void addToCart(CustomerProductModel product) {
     if (state is CustomerLoaded) {
       final loaded = state as CustomerLoaded;
-      
       final currentItem = loaded.cart.firstWhere(
         (item) => item.productId == product.id, 
         orElse: () => CustomerCartItemModel(
@@ -74,11 +103,7 @@ class CustomerCubit extends Cubit<CustomerState> {
           qty: 0
         )
       );
-
-      if (currentItem.qty + 1 > product.availableQty) {
-        return;
-      }
-
+      if (currentItem.qty + 1 > product.availableQty) return;
       final newItem = currentItem.copyWith(qty: currentItem.qty + 1);
       _repo.updateCartItem(_uid, newItem);
     }
@@ -88,7 +113,6 @@ class CustomerCubit extends Cubit<CustomerState> {
     if (state is CustomerLoaded) {
       final loaded = state as CustomerLoaded;
       final itemIndex = loaded.cart.indexWhere((e) => e.productId == productId);
-
       if (itemIndex >= 0) {
         final itemToRemove = loaded.cart[itemIndex];
         _repo.removeCartItem(_uid, itemToRemove.retailerId, productId);
@@ -100,10 +124,8 @@ class CustomerCubit extends Cubit<CustomerState> {
     if (state is CustomerLoaded) {
       final loaded = state as CustomerLoaded;
       final itemIndex = loaded.cart.indexWhere((e) => e.productId == productId);
-      
       if (itemIndex >= 0) {
         final item = loaded.cart[itemIndex];
-        
         if (item.qty > 1) {
            _repo.updateCartItem(_uid, item.copyWith(qty: item.qty - 1));
         } else {
@@ -117,30 +139,15 @@ class CustomerCubit extends Cubit<CustomerState> {
     if (state is CustomerLoaded) {
       final loaded = state as CustomerLoaded;
       final itemIndex = loaded.cart.indexWhere((e) => e.productId == productId);
-      
       if (itemIndex >= 0) {
         final item = loaded.cart[itemIndex];
-
         final product = loaded.products.firstWhere(
           (p) => p.id == productId, 
-          // --- FIX: Added retailerName param to fallback model ---
           orElse: () => CustomerProductModel(
-            id: '', 
-            retailerId: '', 
-            inventoryItemId: '', 
-            name: '', 
-            price: 0, 
-            availableQty: 9999, 
-            imageUrl: '', 
-            category: '',
-            retailerName: '' 
+            id: '', retailerId: '', inventoryItemId: '', name: '', price: 0, availableQty: 9999, imageUrl: '', category: '', retailerName: '' 
           )
         );
-        
-        if (item.qty + 1 > product.availableQty) {
-          return;
-        }
-
+        if (item.qty + 1 > product.availableQty) return;
         _repo.updateCartItem(_uid, item.copyWith(qty: item.qty + 1));
       }
     }
@@ -148,17 +155,12 @@ class CustomerCubit extends Cubit<CustomerState> {
 
   Future<void> checkout(String address) async {
     if (state is! CustomerLoaded) return;
-    
     final cartBackup = List<CustomerCartItemModel>.from((state as CustomerLoaded).cart);
-    
     if (cartBackup.isEmpty) return;
-
     try {
       await _repo.clearCart(_uid); 
-
       Map<String, List<Map<String, dynamic>>> ordersByRetailer = {};
       Map<String, double> totalsByRetailer = {};
-
       for (var item in cartBackup) {
         if (!ordersByRetailer.containsKey(item.retailerId)) {
           ordersByRetailer[item.retailerId] = [];
@@ -167,7 +169,6 @@ class CustomerCubit extends Cubit<CustomerState> {
         ordersByRetailer[item.retailerId]!.add(item.toMap());
         totalsByRetailer[item.retailerId] = totalsByRetailer[item.retailerId]! + (item.price * item.qty);
       }
-
       for (var retailerId in ordersByRetailer.keys) {
         await _repo.placeOrder(
           customerUid: _uid,
@@ -177,7 +178,6 @@ class CustomerCubit extends Cubit<CustomerState> {
           address: address,
         );
       }
-      
     } catch (e) {
       emit(CustomerError("Checkout Failed: $e"));
       _init(); 
