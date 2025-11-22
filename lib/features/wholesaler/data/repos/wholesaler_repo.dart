@@ -4,7 +4,7 @@ import '../models/retailer_model.dart';
 import '../models/wholesaler_inventory_model.dart';
 import '../models/order_model.dart';
 import '../models/wholesaler_listing_model.dart';
-
+import 'package:azt/services/mail_helper.dart';
 class WholesalerRepo {
   final FirebaseDatabase _rtdb = FirebaseDatabase.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -46,6 +46,8 @@ class WholesalerRepo {
         'imageUrl': item.imageUrl,
         'category': item.category,
         'moq': item.moq,
+        // Note: We don't auto-update name here to keep it fast. 
+        // If name changes, toggle listing off/on.
       });
     }
   }
@@ -68,12 +70,11 @@ class WholesalerRepo {
     // Fetch real-time 'listed' count from DB to ensure accuracy
     int oldListedQty = 0;
     if (item.isListed && item.listingId != null) {
-       // Trusting passed item for simplicity, but normally we'd fetch
        oldListedQty = item.listedQty; 
     }
 
     int newListedQty = qtyToList;
-    int delta = newListedQty - oldListedQty; // +ve means adding to list, -ve means removing
+    int delta = newListedQty - oldListedQty; 
 
     if (delta > 0 && item.stock < delta) {
       throw Exception("Not enough unlisted stock in reserve.");
@@ -89,6 +90,18 @@ class WholesalerRepo {
         listingId = newRef.key!;
       }
 
+      // --- FEATURE: Fetch Business Name ---
+      String businessName = 'Verified Seller';
+      try {
+        final docSnapshot = await _firestore.collection('wholesalers').doc(uid).get();
+        if (docSnapshot.exists) {
+          businessName = docSnapshot.data()?['businessName'] ?? 'Verified Seller';
+        }
+      } catch (e) {
+        print("Error fetching business name: $e");
+      }
+      // ------------------------------------
+
       final listingData = {
         'wholesalerId': uid,
         'inventoryItemId': item.id,
@@ -98,6 +111,7 @@ class WholesalerRepo {
         'imageUrl': item.imageUrl,
         'category': item.category,
         'moq': item.moq,
+        'wholesalerName': businessName, // SAVED HERE
       };
       await _rtdb.ref().child('listings_wholesaler/$listingId').set(listingData);
 
@@ -105,28 +119,26 @@ class WholesalerRepo {
       await _rtdb.ref().child('wholesalers/$uid/inventory/${item.id}').update({
         'isListed': true,
         'listingId': listingId,
-        'stock': newUnlistedStock, // Reserve
-        'listedQty': newListedQty, // Listed
+        'stock': newUnlistedStock, 
+        'listedQty': newListedQty, 
       });
 
     } else {
-      // DELIST (Qty 0)
+      // DELIST
       if (item.listingId != null) {
         await _rtdb.ref().child('listings_wholesaler/${item.listingId}').remove();
       }
       
-      // Return everything to Reserve
       await _rtdb.ref().child('wholesalers/$uid/inventory/${item.id}').update({
         'isListed': false,
         'listingId': null,
         'listedQty': 0,
-        'stock': newUnlistedStock, // Reserve grows back
+        'stock': newUnlistedStock, 
       });
     }
   }
 
   Future<void> deleteListing(String listingId, String inventoryItemId, String uid) async {
-    // Helper to remove listing without full toggle logic (if needed)
     final snap = await _rtdb.ref().child('listings_wholesaler/$listingId/available_listed_qty').get();
     int qtyToReturn = 0;
     if (snap.exists) qtyToReturn = (snap.value as num).toInt();
@@ -139,8 +151,8 @@ class WholesalerRepo {
       final Map m = data as Map;
       m['isListed'] = false;
       m['listingId'] = null;
-      m['listedQty'] = 0; // Reset listed
-      m['stock'] = (m['stock'] ?? 0) + qtyToReturn; // Return to stock
+      m['listedQty'] = 0; 
+      m['stock'] = (m['stock'] ?? 0) + qtyToReturn; 
       return Transaction.success(m);
     });
   }
@@ -159,7 +171,6 @@ class WholesalerRepo {
   }
 
   // --- ORDERS & RETAILERS ---
-
   Stream<List<OrderModel>> getOrdersStream(String wholesalerId) {
     return _firestore.collection('orders_retailer').where('wholesaler_seller_uid', isEqualTo: wholesalerId).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -168,12 +179,41 @@ class WholesalerRepo {
     });
   }
 
-  Future<void> updateOrderStatus(String orderId, String newStatus) async {
-    await _firestore.collection('orders_retailer').doc(orderId).update({'status': newStatus.toLowerCase()});
-  }
+  // ... inside WholesalerRepo class ...
 
-  // FIXED: Smart Cancellation Restocking for Wholesaler
+// Import your MailService
+// import 'package:your_app/core/services/mail_service.dart'; 
+
+Future<void> updateOrderStatus(String orderId, String newStatus) async {
+  //Update the status in Firestore
+  await _firestore.collection('orders_retailer').doc(orderId).update({'status': newStatus.toLowerCase()});
+
+  //Fetch Order details to get Retailer UID
+  try {
+    DocumentSnapshot orderSnap = await _firestore.collection('orders_retailer').doc(orderId).get();
+    if (orderSnap.exists) {
+      String retailerUid = orderSnap.get('retailer_uid');
+      
+      //Fetch Retailer Email 
+      DocumentSnapshot userSnap = await _firestore.collection('users').doc(retailerUid).get();
+      // Alternatively check 'retailers' collection if email is stored there:
+      // DocumentSnapshot userSnap = await _firestore.collection('retailers').doc(retailerUid).get();
+
+      if (userSnap.exists) {
+        String email = userSnap.get('email');
+        String name = userSnap.get('username') ?? 'Retailer'; // Adjust field name as needed
+
+        // 4. Send Email
+        await MailService.sendStatusUpdateEmail(email, name, orderId, newStatus);
+      }
+    }
+  } catch (e) {
+    print("Error sending email notification: $e");
+  }
+}
+
   Future<void> cancelOrderAndRestock(String orderId, List<dynamic> items) async {
+    // --- ORIGINAL LOGIC START ---
     await _firestore.collection('orders_retailer').doc(orderId).update({'status': 'cancelled'});
 
     for (var item in items) {
@@ -185,13 +225,11 @@ class WholesalerRepo {
         final listingSnap = await _rtdb.ref().child('listings_wholesaler/$listingId').get();
 
         if (listingSnap.exists) {
-           // Listing is LIVE -> Add to Public Listed Qty
            await _rtdb.ref().child('listings_wholesaler/$listingId/available_listed_qty').runTransaction((data) {
              if (data == null) return Transaction.success(quantity);
              return Transaction.success((data as num).toInt() + quantity);
            });
            
-           // Also try to update Private Listed Qty if we can find the inventory item
            final String? invId = (listingSnap.value as Map)['inventoryItemId'];
            final String? uid = (listingSnap.value as Map)['wholesalerId'];
            if (invId != null && uid != null) {
@@ -201,10 +239,34 @@ class WholesalerRepo {
               });
            }
         } else {
+           // RESTORED MISSING LINE
            print("Listing deleted, stock restoration requires manual intervention or ID lookup.");
         }
       }
     }
+    // --- ORIGINAL LOGIC END ---
+
+    // --- NEW EMAIL LOGIC START ---
+    try {
+      final orderDoc = await _firestore.collection('orders_retailer').doc(orderId).get();
+      if (orderDoc.exists) {
+        final retailerUid = orderDoc.get('retailer_uid');
+        final userDoc = await _firestore.collection('users').doc(retailerUid).get();
+        
+        if (userDoc.exists) {
+          final String email = userDoc.get('email');
+          // Check for username safely
+          final String name = (userDoc.data() as Map<String, dynamic>).containsKey('username') 
+              ? userDoc.get('username') 
+              : 'Retailer';
+
+          await MailService.sendStatusUpdateEmail(email, name, orderId, 'Cancelled');
+        }
+      }
+    } catch (e) {
+      print("Failed to send cancellation email: $e");
+    }
+    // --- NEW EMAIL LOGIC END ---
   }
 
   Stream<List<WholesalerViewRetailerModel>> getRetailersStream() {

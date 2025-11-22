@@ -7,6 +7,7 @@ class CustomerProductModel {
   final int availableQty;
   final String imageUrl;
   final String category;
+  final String retailerName; // Added Field
 
   CustomerProductModel({
     required this.id,
@@ -17,6 +18,7 @@ class CustomerProductModel {
     required this.availableQty,
     required this.imageUrl,
     required this.category,
+    required this.retailerName, // Required
   });
 
   factory CustomerProductModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -26,14 +28,14 @@ class CustomerProductModel {
       inventoryItemId: map['inventoryItemId']?.toString() ?? '',
       name: map['name']?.toString() ?? 'Unknown Product',
       
-      // ROBUST PARSING: Handle String or Number for Price
       price: _parseDouble(map['price']),
-      
-      // ROBUST PARSING: Handle String or Number for Qty
       availableQty: _parseInt(map['available_listed_qty']),
       
       imageUrl: map['imageUrl']?.toString() ?? 'https://placehold.co/400?text=No+Image',
       category: map['category']?.toString() ?? 'General',
+      
+      // Safe fallback if name is missing
+      retailerName: map['retailerName']?.toString() ?? 'Verified Retailer',
     );
   }
 

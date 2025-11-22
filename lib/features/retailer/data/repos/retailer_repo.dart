@@ -1,3 +1,4 @@
+import 'package:azt/services/mail_helper.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction; 
 import '../../../wholesaler/data/models/wholesaler_listing_model.dart';
@@ -9,19 +10,30 @@ class RetailerRepo {
   final FirebaseDatabase _rtdb = FirebaseDatabase.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // ... (Other methods like getWholesalerListingsStream, placeOrderToWholesaler, getMyPurchasesStream, addPurchasedItemsToInventory remain same) ...
-  
   // --- BROWSE (Fetch Wholesaler Listings) ---
+  // Includes Self-Healing Logic for missing Wholesaler Names
   Stream<List<WholesalerListing>> getWholesalerListingsStream() {
     return _rtdb.ref().child('listings_wholesaler').onValue.map((event) {
       final List<WholesalerListing> items = [];
       if (event.snapshot.value != null && event.snapshot.value is Map) {
         final Map<dynamic, dynamic> map = event.snapshot.value as Map<dynamic, dynamic>;
+        
         map.forEach((key, value) {
           try {
+            // 1. CRITICAL CHECK: Is this an "Old Item" (Missing the wholesalerName key)?
+            final itemMap = value as Map;
+            final bool isNameMissing = !itemMap.containsKey('wholesalerName');
+
+            // Parse the item (Model handles nulls safely)
             final item = WholesalerListing.fromMap(key, value);
+            
             if (item.availableQty > 0) {
               items.add(item);
+
+              // 2. SELF-HEALING: If name is missing, trigger background fetch & patch
+              if (isNameMissing) {
+                _fetchAndPatchWholesalerName(item.id, item.wholesalerId);
+              }
             }
           } catch (e) {
             print("Error parsing listing $key: $e");
@@ -30,6 +42,26 @@ class RetailerRepo {
       }
       return items;
     });
+  }
+
+  // --- HELPER: The "In-Between Fix" for Wholesaler Names ---
+  Future<void> _fetchAndPatchWholesalerName(String listingId, String wholesalerId) async {
+    if (wholesalerId.isEmpty) return;
+    
+    try {
+      // A. Fetch Wholesaler Profile
+      final doc = await _firestore.collection('wholesalers').doc(wholesalerId).get();
+      final String businessName = doc.data()?['businessName'] ?? 'Verified Seller';
+
+      // B. Patch RTDB (Update ONLY the name)
+      await _rtdb.ref().child('listings_wholesaler/$listingId').update({
+        'wholesalerName': businessName
+      });
+      
+      print("Auto-repaired listing $listingId. Added name: $businessName");
+    } catch (e) {
+      print("Failed to patch wholesaler name for $listingId: $e");
+    }
   }
 
   // --- ORDERS & CART ---
@@ -139,19 +171,13 @@ class RetailerRepo {
   }
 
   // --- LISTINGS & STOCK SPLIT LOGIC ---
-  
+  // Updated to fetch and save 'retailerName'
   Future<void> toggleProductListing(String uid, RetailerInventoryItemModel item, int qtyToList, {double? newPrice}) async {
-    // Calculate how much stock is moving from "Unlisted" (stockremain) to "Listed" (listedQty)
-    // If item.isLive, 'item.listedQty' is the old amount.
-    // If !item.isLive, the old listed amount is effectively 0 (since it was all in stockremain).
     int oldListedQty = item.isLive ? item.listedQty : 0;
     int newListedQty = qtyToList;
     
-    // Positive delta means moving FROM Stock TO Listed.
-    // Negative delta means moving FROM Listed TO Stock.
     int delta = newListedQty - oldListedQty;
     
-    // Check if we have enough stock (only if increasing listing)
     if (delta > 0 && item.stockremain < delta) {
       throw Exception("Not enough unlisted stock.");
     }
@@ -161,12 +187,23 @@ class RetailerRepo {
 
     if (qtyToList > 0) {
       // LISTING / UPDATING
-      // 1. Create/Update Public Listing
       String listingId = item.listingId ?? '';
       if (listingId.isEmpty) {
         final listingRef = _rtdb.ref().child('listings_retailer').push();
         listingId = listingRef.key!;
       }
+
+      // --- FEATURE: Fetch Retailer Business Name (For Customers) ---
+      String businessName = 'Verified Retailer';
+      try {
+        final docSnapshot = await _firestore.collection('retailers').doc(uid).get();
+        if (docSnapshot.exists) {
+          businessName = docSnapshot.data()?['businessName'] ?? 'Verified Retailer';
+        }
+      } catch (e) {
+        print("Error fetching business name: $e");
+      }
+      // -------------------------------------------------------------
       
       final listingData = {
         'retailerId': uid,
@@ -176,30 +213,28 @@ class RetailerRepo {
         'price': listingPrice,
         'imageUrl': item.imageUrl,
         'category': item.category,
+        'retailerName': businessName, // <--- SAVED HERE
       };
       await _rtdb.ref().child('listings_retailer/$listingId').set(listingData);
       
-      // 2. Update Private Inventory (Apply the Split Logic)
       await _rtdb.ref().child('retailers/$uid/inventory/${item.id}').update({
         'isLive': true,
         'listingId': listingId,
         'listedQty': newListedQty,
-        'stockremain': newStockRemain, // Updated Stock
+        'stockremain': newStockRemain, 
         'price': listingPrice, 
       });
     } else {
-      // DELISTING (Removing from Public)
+      // DELISTING
       if (item.listingId != null) {
         await _rtdb.ref().child('listings_retailer/${item.listingId}').remove();
       }
       
-      // Return everything to Stock
-      // newStockRemain here is: currentStock - (0 - oldListed) = currentStock + oldListed
       await _rtdb.ref().child('retailers/$uid/inventory/${item.id}').update({
         'isLive': false,
         'listingId': null,
         'listedQty': 0,
-        'stockremain': newStockRemain, // All stock returned to reserve
+        'stockremain': newStockRemain, 
       });
     }
   }
@@ -239,7 +274,6 @@ class RetailerRepo {
      await _rtdb.ref().child('retailers/$uid/inventory/$itemId').remove();
   }
 
-  // --- CUSTOMERS & ORDERS ---
   Stream<List<OrderModel>> getCustomerOrdersStream(String retailerUid) {
     return _firestore
         .collection('orders_customer')
@@ -253,18 +287,42 @@ class RetailerRepo {
   }
 
   Future<void> updateCustomerOrderStatus(String orderId, String status) async {
-    await _firestore.collection('orders_customer').doc(orderId).update({
-      'status': status.toLowerCase(),
-    });
-  }
+  // 1. Update Firestore
+  await _firestore.collection('orders_customer').doc(orderId).update({
+    'status': status.toLowerCase(),
+  });
 
-  // FIXED: Restock logic - Returns to LISTED stock, NOT unlisted stock
-  Future<void> cancelCustomerOrderAndRestock(String orderId, List<dynamic> items, String retailerUid) async {
+  // 2. Trigger Email Logic
+  try {
+    DocumentSnapshot orderSnap = await _firestore.collection('orders_customer').doc(orderId).get();
+    if (orderSnap.exists) {
+      // Assuming the customer's UID is stored as 'customer_uid' or 'userId'
+      // Check your 'orders_customer' schema to be sure. 
+      String customerUid = orderSnap.get('customer_uid'); 
+      
+      DocumentSnapshot userSnap = await _firestore.collection('users').doc(customerUid).get();
+      
+      if (userSnap.exists) {
+        String email = userSnap.get('email');
+        String name = userSnap.get('username') ?? 'Customer';
+
+        await MailService.sendStatusUpdateEmail(email, name, orderId, status);
+      }
+    }
+  } catch (e) {
+    print("Error sending email notification: $e");
+  }
+}
+
+  // Add this import at the top
+// import 'package:your_app_package/core/services/mail_service.dart';
+
+Future<void> cancelCustomerOrderAndRestock(String orderId, List<dynamic> items, String retailerUid) async {
+    // --- ORIGINAL LOGIC START ---
     await _firestore.collection('orders_customer').doc(orderId).update({'status': 'cancelled'});
 
     for (var item in items) {
       final String? inventoryItemId = item['inventoryItemId'];
-      final String? listingId = item['id']; // Listing ID from order
       final int qty = int.tryParse(item['qty'].toString()) ?? 0;
       
       if (qty <= 0 || inventoryItemId == null) continue;
@@ -278,11 +336,9 @@ class RetailerRepo {
         final String? currentListingId = data['listingId'];
 
         if (isLive && currentListingId != null) {
-             // If item is currently live, add stock back to LISTED QTY (available for sale again)
              final int currentListed = int.tryParse(data['listedQty'].toString()) ?? 0;
              await invRef.update({'listedQty': currentListed + qty});
              
-             // Update Public Listing
              await _rtdb.ref().child('listings_retailer/$currentListingId').runTransaction((mutableData) {
                if (mutableData == null) return Transaction.success({'available_listed_qty': qty});
                final Map existing = mutableData as Map;
@@ -291,12 +347,36 @@ class RetailerRepo {
                return Transaction.success(existing);
              });
         } else {
-             // If item was delisted in the meantime, add it back to UNLISTED STOCK
              final int currentStock = int.tryParse(data['stockremain'].toString()) ?? 0;
              await invRef.update({'stockremain': currentStock + qty});
         }
       }
     }
+    // --- ORIGINAL LOGIC END ---
+
+    // --- NEW EMAIL LOGIC START ---
+    try {
+      final orderDoc = await _firestore.collection('orders_customer').doc(orderId).get();
+      if (orderDoc.exists) {
+        // Adjust 'customer_uid' based on your database schema if needed
+        final customerUid = (orderDoc.data() as Map<String, dynamic>).containsKey('customer_uid') 
+            ? orderDoc.get('customer_uid') 
+            : orderDoc.get('userId'); 
+        
+        final userDoc = await _firestore.collection('users').doc(customerUid).get();
+        if (userDoc.exists) {
+          final String email = userDoc.get('email');
+          final String name = (userDoc.data() as Map<String, dynamic>).containsKey('username') 
+              ? userDoc.get('username') 
+              : 'Customer';
+
+          await MailService.sendStatusUpdateEmail(email, name, orderId, 'Cancelled');
+        }
+      }
+    } catch (e) {
+      print("Failed to send cancellation email: $e");
+    }
+    // --- NEW EMAIL LOGIC END ---
   }
 
   Stream<List<Map<String, dynamic>>> getAppUsersStream() {

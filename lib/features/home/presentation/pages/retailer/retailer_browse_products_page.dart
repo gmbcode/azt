@@ -29,6 +29,13 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
             cartCounts[item['id']] = item['qty'];
           }
 
+          // --- RESPONSIVE FIX ---
+          final screenWidth = MediaQuery.of(context).size.width;
+          final isMobile = screenWidth < 600;
+          
+          // Taller cards on mobile (0.55) so buttons don't overflow
+          final double childAspectRatio = isMobile ? 0.55 : 0.65;
+
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -51,7 +58,7 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                       ),
                     ),
                     const SizedBox(width: 16),
-                    if (MediaQuery.of(context).size.width > 800)
+                    if (!isMobile)
                       FloatingActionButton.extended(
                         onPressed: () {
                           final retailerCubit = context.read<RetailerCubit>();
@@ -67,9 +74,9 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                   child: products.isEmpty 
                   ? Center(child: Text("No products found", style: TextStyle(color: Colors.grey[600])))
                   : GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 220,
-                        childAspectRatio: 0.7,
+                        childAspectRatio: childAspectRatio,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
                       ),
@@ -78,7 +85,6 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                         final product = products[index];
                         final int inCartQty = cartCounts[product.id] ?? 0;
                         
-                        // FIXED: Validation logic
                         final bool isMaxReached = inCartQty >= product.availableQty;
                         final bool isOutOfStock = product.availableQty == 0;
 
@@ -93,7 +99,11 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                                 child: Stack(
                                   fit: StackFit.expand,
                                   children: [
-                                    Image.network(product.imageUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Container(color: Colors.grey[200], child: const Icon(Icons.image))),
+                                    Image.network(
+                                      product.imageUrl, 
+                                      fit: BoxFit.cover, 
+                                      errorBuilder: (_,__,___) => Container(color: Colors.grey[200], child: const Icon(Icons.image))
+                                    ),
                                     if (inCartQty > 0)
                                       Positioned(
                                         top: 8, right: 8,
@@ -112,25 +122,47 @@ class _RetailerBrowseProductsPageState extends State<RetailerBrowseProductsPage>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    
+                                    const SizedBox(height: 4),
+                                    
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        // Rupee Symbol Fix
                                         Text('₹${product.price}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                                         Text('Stock: ${product.availableQty}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                                       ],
                                     ),
+                                    
                                     const SizedBox(height: 8),
+
+                                    // --- WHOLESALER NAME DISPLAY ---
+                                    Row(
+                                      children: [
+                                        Icon(Icons.storefront, size: 12, color: Colors.grey[500]),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            "Sold by ${product.wholesalerName}", 
+                                            style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis, 
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(height: 8),
+                                    
                                     SizedBox(
                                       width: double.infinity,
                                       height: 36,
                                       child: ElevatedButton(
-                                        // FIXED: Disable button if max reached or out of stock
                                         onPressed: (isMaxReached || isOutOfStock)
                                             ? null 
                                             : () => context.read<RetailerCubit>().addToCart(product),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: (isMaxReached || isOutOfStock) ? Colors.grey : null,
+                                          padding: EdgeInsets.zero,
                                         ),
                                         child: Text(
                                           isOutOfStock 

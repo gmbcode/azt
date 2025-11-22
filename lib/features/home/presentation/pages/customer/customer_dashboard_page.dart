@@ -28,6 +28,10 @@ class CustomerDashboardPage extends StatelessWidget {
         
         final featuredProduct = products.isNotEmpty ? products.first : null;
 
+        // --- RESPONSIVE CHECK ---
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isMobile = screenWidth < 600;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           child: Column(
@@ -89,7 +93,7 @@ class CustomerDashboardPage extends StatelessWidget {
               const Text("Popular Categories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               SizedBox(
-                height: 100, // Increased height slightly to prevent clip
+                height: 100, 
                 child: categories.isEmpty 
                 ? const Text("No categories yet", style: TextStyle(color: Colors.grey))
                 : ListView.builder(
@@ -130,7 +134,7 @@ class CustomerDashboardPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // 4. Hero Banner
+              // 4. Hero Banner ("Pick of the Week")
               if (featuredProduct != null)
                 Container(
                   width: double.infinity,
@@ -141,6 +145,7 @@ class CustomerDashboardPage extends StatelessWidget {
                   ),
                   child: Stack(
                     children: [
+                      // Text and Button Section
                       Positioned(
                         left: 24, top: 40,
                         child: SizedBox(
@@ -175,9 +180,15 @@ class CustomerDashboardPage extends StatelessWidget {
                           ),
                         ),
                       ),
+                      
+                      // --- FIX: Responsive Image Container ---
+                      // On mobile: Smaller width (140) and pushed slightly inside (right: 10)
+                      // On desktop: Original width (200) and popping effect (right: -20)
                       Positioned(
-                        right: -20, top: 10, bottom: 10,
-                        width: 200,
+                        right: isMobile ? 10 : -20, 
+                        top: 10, 
+                        bottom: 10,
+                        width: isMobile ? 140 : 200, 
                         child: Image.network(
                           featuredProduct.imageUrl,
                           fit: BoxFit.contain,
@@ -190,7 +201,7 @@ class CustomerDashboardPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // 5. Grid (New Arrivals) - Fixed Overflow
+              // 5. Grid (New Arrivals)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -204,9 +215,10 @@ class CustomerDashboardPage extends StatelessWidget {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 200, 
-                  childAspectRatio: 0.6,  // FIXED: Taller aspect ratio prevents overflow
+                  // Previous Fix: Dynamic child aspect ratio for grid
+                  childAspectRatio: isMobile ? 0.52 : 0.70, 
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                 ),

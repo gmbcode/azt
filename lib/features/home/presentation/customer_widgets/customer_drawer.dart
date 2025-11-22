@@ -15,7 +15,6 @@ class CustomerDrawer extends StatelessWidget {
     final primaryColor = Theme.of(context).primaryColor;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Use a gradient background for a "Premium" feel
     return Container(
       width: 260,
       decoration: BoxDecoration(
@@ -30,7 +29,6 @@ class CustomerDrawer extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 50),
-          // Logo / Title
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -38,7 +36,7 @@ class CustomerDrawer extends StatelessWidget {
                 Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 32),
                 SizedBox(width: 10),
                 Text(
-                  "ShopHub",
+                  "AZT",
                   style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1),
                 ),
               ],
@@ -47,8 +45,9 @@ class CustomerDrawer extends StatelessWidget {
           const SizedBox(height: 40),
           const Divider(color: Colors.white24),
           
-          // Menu Items
+          // --- MENU ITEMS ---
           _buildNavItem("Dashboard", Icons.dashboard_outlined, 'dashboard'),
+          _buildNavItem("Products for You", Icons.location_on_outlined, 'products_for_you'), // NEW
           _buildNavItem("Browse Products", Icons.search, 'browse'),
           _buildNavItem("My Cart", Icons.shopping_cart_outlined, 'cart'),
           _buildNavItem("My Orders", Icons.local_shipping_outlined, 'orders'),

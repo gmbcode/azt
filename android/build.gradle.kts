@@ -5,23 +5,10 @@ allprojects {
     }
 }
 
-// Remove ': Directory' type annotation here
-val newBuildDir = rootProject.layout.buildDirectory
-    .dir("../../build")
-    .get()
-
-rootProject.layout.buildDirectory.value(newBuildDir)
-
 subprojects {
-    // Remove ': Directory' type annotation here as well
-    val newSubprojectBuildDir = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+   project.evaluationDependsOn(":app")
 }
 
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-tasks.register<Delete>("clean") {
-    delete(rootProject.layout.buildDirectory)
+tasks.register("clean", Delete::class) {
+    delete(rootProject.buildDir)
 }

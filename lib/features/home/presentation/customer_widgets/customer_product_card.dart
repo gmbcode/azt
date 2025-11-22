@@ -18,13 +18,12 @@ class CustomerProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final snackBar = SnackBar(
               content: const Text('This is the maximum quantity that can be ordered.'),
-              duration: const Duration(seconds: 2), // Optional: set duration
+              duration: const Duration(seconds: 2), 
             );
     return BlocBuilder<CustomerCubit, CustomerState>(
       builder: (context, state) {
         int inCartQty = 0;
         
-        // FIXED: Safe way to find item without causing Null errors
         if (state is CustomerLoaded) {
           final index = state.cart.indexWhere((item) => item.productId == product.id);
           if (index != -1) {
@@ -32,7 +31,6 @@ class CustomerProductCard extends StatelessWidget {
           }
         }
 
-        // Logic: Stop adding if cart has >= available stock
         final bool isMaxReached = inCartQty >= product.availableQty;
         final bool isOutOfStock = product.availableQty == 0;
 
@@ -76,13 +74,21 @@ class CustomerProductCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis
                     ),
                     const SizedBox(height: 4),
+                    
+                    // --- ADDED: Retailer Name ---
+                    Text(
+                      "Sold by ${product.retailerName}",
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // ----------------------------
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Currency Fix
                         Text('₹${product.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                        // Stock indicator
-                        //Text('Stock: ${product.availableQty}', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -98,7 +104,6 @@ class CustomerProductCard extends StatelessWidget {
                         ),
                       )
                     else if (inCartQty == 0)
-                      // 1. Initial "Add" Button
                       SizedBox(
                         width: double.infinity,
                         height: 36,
@@ -111,7 +116,6 @@ class CustomerProductCard extends StatelessWidget {
                         ),
                       )
                     else
-                      // 2. +/- Quantity Controls
                       Container(
                         height: 36,
                         decoration: BoxDecoration(
@@ -135,8 +139,6 @@ class CustomerProductCard extends StatelessWidget {
                             ),
                             
                             IconButton(
-                              
-                              // Disable if Max Reached
                               icon: Icon(Icons.add, size: 16, color: isMaxReached ? Colors.grey : Colors.green),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),

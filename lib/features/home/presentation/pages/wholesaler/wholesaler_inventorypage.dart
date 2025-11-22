@@ -75,7 +75,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             child: const Icon(Icons.inventory_2, color: Colors.orange),
                           ),
                           title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text("Stock: ${item.stock} | Price: \$${item.price} | MOQ: ${item.moq}"),
+                          subtitle: Text("Stock: ${item.stock} | Price: \₹${item.price} | MOQ: ${item.moq}"),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
