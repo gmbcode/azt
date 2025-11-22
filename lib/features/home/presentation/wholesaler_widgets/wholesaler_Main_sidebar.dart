@@ -38,7 +38,7 @@ class MainSidebar extends StatelessWidget {
               children: [
                 const Icon(Icons.storefront, color: Colors.white, size: 32),
                 const SizedBox(width: 12),
-                const Text("Wholesaler Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                const Text("AZT Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
               ],
             ),
           ),

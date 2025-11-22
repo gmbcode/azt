@@ -37,7 +37,7 @@ class RetailerMainSidebar extends StatelessWidget {
               children: [
                 const Icon(Icons.store, color: Colors.white, size: 32),
                 const SizedBox(width: 12),
-                const Text("Retailer Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+                const Text("AZT Hub", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
               ],
             ),
           ),

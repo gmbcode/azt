@@ -108,9 +108,9 @@ class _LoginPageState extends State<LoginPage> {
         
               //name of app
               Text(
-                "S H O P P I N G   A P P ",
+                " A Z T ",
                 style:TextStyle(
-                  fontSize: 16,
+                  fontSize: 25,
                   color: Theme.of(context).colorScheme.inversePrimary,
                 )
               ),
