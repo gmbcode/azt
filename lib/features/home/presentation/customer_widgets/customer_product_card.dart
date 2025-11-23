@@ -122,7 +122,15 @@ class CustomerProductCard extends StatelessWidget {
                               ),
                               // Show Icon on mobile, Text on desktop
                               child: isMobile
-                                  ? const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20)
+                                  ? const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min, // Keeps content compact
+                                      children: [
+                                        Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 16),
+                                        SizedBox(width: 4),
+                                        Text("Add", style: TextStyle(fontSize: 12, color: Colors.white)),
+                                      ],
+                                    )
                                   : const Text("Add to Cart", style: TextStyle(fontSize: 12, color: Colors.white)),
                             ),
                           );
