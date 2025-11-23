@@ -1,5 +1,7 @@
 # AZT - Modern Cross-Platform E-Commerce Application
 ![aztlogo](web/icons/Icon-192.png?raw=true)
+
+
 **AZT** is a cutting-edge Flutter application designed to provide a seamless e-commerce experience across Web, Android, and iOS. Built with a robust modern tech stack, it features a feature-first architecture, role-based access control (Customer, Retailer, Wholesaler), and a fully integrated Firebase backend.
 
 ---
