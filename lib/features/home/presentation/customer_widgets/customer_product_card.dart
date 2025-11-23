@@ -17,9 +17,10 @@ class CustomerProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final snackBar = SnackBar(
-              content: const Text('This is the maximum quantity that can be ordered.'),
-              duration: const Duration(seconds: 2), 
-            );
+      content: const Text('This is the maximum quantity that can be ordered.'),
+      duration: const Duration(seconds: 2), 
+    );
+    
     return BlocBuilder<CustomerCubit, CustomerState>(
       builder: (context, state) {
         int inCartQty = 0;
@@ -75,7 +76,7 @@ class CustomerProductCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     
-                    // --- ADDED: Retailer Name ---
+                    // --- Retailer Name ---
                     Text(
                       "Sold by ${product.retailerName}",
                       style: TextStyle(fontSize: 10, color: Colors.grey[600], fontStyle: FontStyle.italic),
@@ -104,16 +105,28 @@ class CustomerProductCard extends StatelessWidget {
                         ),
                       )
                     else if (inCartQty == 0)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 36,
-                        child: ElevatedButton(
-                          onPressed: onAdd,
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text("Add to Cart", style: TextStyle(fontSize: 12)),
-                        ),
+                       LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Check if the screen is mobile width
+                          bool isMobile = MediaQuery.of(context).size.width < 600;
+                          
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 36,
+                            child: ElevatedButton(
+                              onPressed: onAdd,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black, // Always Black
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero, // Ensures icon is centered
+                              ),
+                              // Show Icon on mobile, Text on desktop
+                              child: isMobile
+                                  ? const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20)
+                                  : const Text("Add to Cart", style: TextStyle(fontSize: 12, color: Colors.white)),
+                            ),
+                          );
+                        }
                       )
                     else
                       Container(
@@ -135,7 +148,7 @@ class CustomerProductCard extends StatelessWidget {
                             
                             Text(
                               '$inCartQty', 
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)
                             ),
                             
                             IconButton(
